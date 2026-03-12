@@ -1,0 +1,1256 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { RefreshCw, Trophy, AlertCircle, Sparkles, Package, Gift, Star } from 'lucide-react';
+
+// --- 数据字典：模块化魔法猫咪配置 (百猫究极大图鉴 100只) ---
+const CAT_DICTIONARY = [
+  // ---------------- N级 (40%) 1-40号 ----------------
+  { id: 1, name: '吃瓜橘猫', rarity: 'N', color: '#FDBA74', belly: '#FFF7ED', eyes: 'happy', mouth: 'blep', tail: 'normal', desc: '看起来很好吃，实际上很能吃。' },
+  { id: 2, name: '高冷黑猫', rarity: 'N', color: '#1F2937', belly: '#374151', eyes: 'cool', mouth: 'smile', tail: 'normal', desc: '总是用鄙视的眼神看着你。' },
+  { id: 3, name: '三花大板', rarity: 'N', color: '#FFFFFF', belly: '#FFFFFF', spots: ['#F97316', '#1F2937'], eyes: 'normal', mouth: 'open', tail: 'fluffy', desc: '经典的配色，经典的脾气。' },
+  { id: 4, name: '纸箱潜伏者', rarity: 'N', color: '#D1D5DB', belly: '#F3F4F6', eyes: 'angry', mouth: 'ninja-muffled', tail: 'normal', bodygear: 'cardboard-box', desc: '只要钻进纸箱，它就觉得没人能看到它。' },
+  { id: 5, name: '白手套绅士', rarity: 'N', color: '#111827', belly: '#FFFFFF', paws: '#FFFFFF', eyes: 'normal', mouth: 'smile', tail: 'normal', desc: '穿着优雅的白手套，像个小绅士。' },
+  { id: 6, name: '瞌睡布偶喵', rarity: 'N', color: '#F3F4F6', belly: '#FFFFFF', eyes: 'happy', mouth: 'blep', tail: 'fluffy', desc: '不管在哪里都能秒睡的毛茸茸生物。' },
+  { id: 7, name: '纸袋套头喵', rarity: 'N', color: '#9CA3AF', belly: '#D1D5DB', eyes: 'eyes-only', headgear: 'paper-bag', tail: 'normal', desc: '不知道为什么，戴着纸袋让它很有安全感。' },
+  { id: 8, name: '摸鱼上班族', rarity: 'N', color: '#FCD34D', belly: '#FEF3C7', eyes: 'dead-fish', mouth: 'smile', held: 'coffee', desc: '靠着一杯特浓黑咖啡续命的打工人。' },
+  { id: 9, name: '白化仙女猫', rarity: 'N', color: '#FFFFFF', belly: '#FFFFFF', eyes: 'star', mouth: 'smile', tail: 'normal', desc: '雪白纯洁，像个小仙女。' },
+  { id: 10, name: '奶牛斑纹喵', rarity: 'N', color: '#FFFFFF', belly: '#FFFFFF', spots: ['#111827', '#111827'], eyes: 'googly', mouth: 'open', tail: 'normal', desc: '神经大条，经常平地摔。' },
+  { id: 11, name: '无毛外星人', rarity: 'N', color: '#FBCFE8', belly: '#FDF2F8', eyes: 'cool', mouth: 'smile', tail: 'normal', desc: '没有毛，摸起来像热乎乎的桃子。' },
+  { id: 12, name: '暹罗挖煤工', rarity: 'N', color: '#E5E7EB', belly: '#E5E7EB', spots: ['#374151', '#374151'], eyes: 'normal', mouth: 'blep', tail: 'normal', desc: '脸黑得像刚从煤矿里出来一样。' },
+  { id: 13, name: '蓝胖子', rarity: 'N', color: '#94A3B8', belly: '#CBD5E1', eyes: 'happy', mouth: 'smile', tail: 'fluffy', desc: '非常敦实，抱起来手感极佳。' },
+  { id: 14, name: '偷吃炸毛喵', rarity: 'N', color: '#78350F', belly: '#92400E', eyes: 'googly', mouth: 'fangs', tail: 'fluffy', desc: '偷吃小鱼干被抓包时的应激状态。' },
+  { id: 15, name: '头顶胖次喵', rarity: 'N', color: '#D6D3D1', belly: '#E7E5E4', eyes: 'dead-fish', headgear: 'magical-ribbon', tail: 'normal', desc: '不要问它头上的蝴蝶结是从哪来的。' },
+  { id: 16, name: '干饭王', rarity: 'N', color: '#FDBA74', belly: '#FFFFFF', eyes: 'star', mouth: 'open', held: 'spatula', tail: 'normal', desc: '听到开罐头的声音会瞬间闪现。' },
+  { id: 17, name: '社恐角落喵', rarity: 'N', color: '#4B5563', belly: '#6B7280', eyes: 'ghost-eyes', mouth: 'ninja-muffled', tail: 'normal', desc: '只想躲在阴暗的角落里发霉。' },
+  { id: 18, name: '暗中观察喵', rarity: 'N', color: '#000000', belly: '#111827', eyes: 'red-glow', mouth: 'smile', tail: 'twin', desc: '在漆黑的房间里只有两只眼睛在发光。' },
+  { id: 19, name: '草丛伪装者', rarity: 'N', color: '#A3E635', belly: '#BEF264', eyes: 'normal', mouth: 'blep', headgear: 'flower-crown', tail: 'normal', desc: '在草地里睡了一下午，身上沾满了草屑。' },
+  { id: 20, name: '迷路小可怜', rarity: 'N', color: '#D4D4D8', belly: '#E4E4E7', eyes: 'happy', mouth: 'open', bodygear: 'backpack', tail: 'normal', desc: '背着小书包，但是不知道要去哪。' },
+  { id: 21, name: '吐司面罩喵', rarity: 'N', color: '#FDE68A', belly: '#FFF7ED', eyes: 'dead-fish', headgear: 'toast', tail: 'normal', desc: '不小心把脸卡在了切片面包里。' },
+  { id: 22, name: '键盘终结者', rarity: 'N', color: '#1F2937', belly: '#374151', eyes: 'happy', mouth: 'blep', held: 'laptop', desc: '只要你一打字，它就精准地趴在键盘上。' },
+  { id: 23, name: '鱼骨收藏家', rarity: 'N', color: '#D1D5DB', belly: '#E5E7EB', eyes: 'normal', mouth: 'smile', held: 'fish-bone', tail: 'fluffy', desc: '对舔得干干净净的鱼骨头爱不释手。' },
+  { id: 24, name: '瑜伽大师喵', rarity: 'N', color: '#FBCFE8', belly: '#FFFFFF', eyes: 'happy', tail: 'normal', desc: '正在展示令人惊叹的流体骨骼。' },
+  { id: 25, name: '窗台思想家', rarity: 'N', color: '#D97706', belly: '#FCD34D', eyes: 'cool', mouth: 'ninja-muffled', desc: '每天看着窗外的麻雀思考猫生。' },
+  { id: 26, name: '拖鞋霸占者', rarity: 'N', color: '#FFFFFF', belly: '#F3F4F6', eyes: 'angry', mouth: 'fangs', desc: '这是它的拖鞋，谁也别想拿走。' },
+  { id: 27, name: '扫地机骑士', rarity: 'N', color: '#475569', belly: '#64748B', eyes: 'cool', mouth: 'open', desc: '把扫地机器人当成了自己的专属座驾。' },
+  { id: 28, name: '逗猫棒受害者', rarity: 'N', color: '#EF4444', belly: '#FCA5A5', eyes: 'googly', mouth: 'open', tail: 'fluffy', desc: '被逗猫棒转得晕头转向。' },
+  { id: 29, name: '水豚模仿者', rarity: 'N', color: '#B45309', belly: '#D97706', eyes: 'dead-fish', mouth: 'smile', tail: 'normal', desc: '情绪稳定到了令人发指的地步。' },
+  { id: 30, name: '泥巴滚滚喵', rarity: 'N', color: '#713F12', belly: '#854D0E', eyes: 'happy', mouth: 'blep', tail: 'fluffy', desc: '刚在雨后的泥坑里打了三百个滚。' },
+  { id: 31, name: '雪地靴喵', rarity: 'N', color: '#1E293B', belly: '#334155', paws: '#F8FAFC', eyes: 'cool', mouth: 'smile', tail: 'normal', desc: '拥有纯白色的四肢，像穿了雪地靴。' },
+  { id: 32, name: '盆栽伪装喵', rarity: 'N', color: '#22C55E', belly: '#4ADE80', eyes: 'eyes-only', headgear: 'paper-bag', tail: 'normal', desc: '躲在纸袋里，头顶长出了两片草。' },
+  { id: 33, name: '冰箱守门员', rarity: 'N', color: '#E2E8F0', belly: '#F8FAFC', eyes: 'angry', mouth: 'fangs', desc: '守在冰箱前，试图用眼神逼迫你交出肉肉。' },
+  { id: 34, name: '纸团追逐者', rarity: 'N', color: '#FDBA74', belly: '#FFF', eyes: 'googly', tail: 'twin', desc: '对揉成团的废纸有着近乎疯狂的执念。' },
+  { id: 35, name: '肚皮陷阱', rarity: 'N', color: '#111827', belly: '#FCA5A5', eyes: 'evil', mouth: 'smile', tail: 'normal', desc: '露出肚皮只是个幌子，摸了就会被咬。' },
+  { id: 36, name: '激光笔猎手', rarity: 'N', color: '#6B7280', belly: '#9CA3AF', eyes: 'red-glow', tail: 'normal', desc: '发誓一定要抓到那个移动的红点。' },
+  { id: 37, name: '浴缸恐惧者', rarity: 'N', color: '#FFFFFF', belly: '#FEE2E2', eyes: 'googly', mouth: 'open', tail: 'fluffy', desc: '一听到放水的声音就会四脚扒地。' },
+  { id: 38, name: '凌晨跑酷王', rarity: 'N', color: '#1E1B4B', belly: '#312E81', eyes: 'star', mouth: 'open', tail: 'fluffy', desc: '凌晨三点的客厅是它的极限运动场。' },
+  { id: 39, name: '快递盒质检员', rarity: 'N', color: '#FDE047', belly: '#FEF08A', eyes: 'normal', headgear: 'toast', bodygear: 'cardboard-box', desc: '严格检查每一个来到家里的硬纸板箱。' },
+  { id: 40, name: '仙人掌朋友', rarity: 'N', color: '#166534', belly: '#22C55E', eyes: 'happy', tail: 'twin', desc: '和阳台上的仙人掌结下了深厚的友谊。' },
+
+  // ---------------- R级 (30%) 41-70号 ----------------
+  { id: 41, name: '见习魔法师', rarity: 'R', color: '#E5E7EB', belly: '#FFFFFF', eyes: 'star', headgear: 'wizard-hat', held: 'wand', desc: '刚刚学会把水变成牛奶。' },
+  { id: 42, name: '暗影忍者喵', rarity: 'R', color: '#111827', belly: '#1F2937', eyes: 'angry', headgear: 'ninja-headband', held: 'kunai', desc: '无声无息偷走你的夜宵。' },
+  { id: 43, name: '荒野探险家', rarity: 'R', color: '#D97706', belly: '#FDE68A', headgear: 'safari-hat', bodygear: 'backpack', desc: '寻找“无限猫粮罐头”。' },
+  { id: 44, name: '海盗船长喵', rarity: 'R', color: '#78350F', belly: '#FEF3C7', eyes: 'eyepatch', headgear: 'pirate-hat', held: 'hook', desc: '目标是征服所有鱼塘！' },
+  { id: 45, name: '春日园丁', rarity: 'R', color: '#FEF08A', belly: '#FEF9C3', headgear: 'flower-crown', held: 'watering-can', desc: '种下的猫草长得特别茂盛。' },
+  { id: 46, name: '街头摇滚手', rarity: 'R', color: '#1F2937', belly: '#374151', headgear: 'mohawk', held: 'guitar', desc: '半夜在围墙上开演唱会。' },
+  { id: 47, name: '实习丘比特', rarity: 'R', color: '#FFFFFF', belly: '#FDF2F8', bodygear: 'angel-wings', held: 'bow', desc: '爱心箭会让两只猫抢一个罐头。' },
+  { id: 48, name: '深夜大厨', rarity: 'R', color: '#F97316', belly: '#FFF7ED', headgear: 'chef-hat', held: 'cleaver', desc: '把大鱼切成完美的生鱼片。' },
+  { id: 49, name: '流浪剑客', rarity: 'R', color: '#94A3B8', belly: '#CBD5E1', headgear: 'headband', held: 'katana', desc: '心中无鱼，拔刀自然神。' },
+  { id: 50, name: '皇家禁卫军', rarity: 'R', color: '#F8FAFC', belly: '#FFFFFF', headgear: 'knight-helm', held: 'holy-sword', desc: '誓死保卫猫抓板！' },
+  { id: 51, name: '天才小画家', rarity: 'R', color: '#FCD34D', belly: '#FEF3C7', headgear: 'chef-hat', held: 'paintbrush', desc: '用尾巴在墙上留下不可磨灭的印记。' },
+  { id: 52, name: '怪盗罗宾喵', rarity: 'R', color: '#312E81', belly: '#4338CA', eyes: 'monocle', headgear: 'top-hat', held: 'cards', desc: '预告信：今晚偷走你最爱的抱枕。' },
+  { id: 53, name: '扑克牌手', rarity: 'R', color: '#FFFFFF', belly: '#FFFFFF', spots: ['#EF4444', '#111827'], headgear: 'top-hat', held: 'cards', desc: '永远猜透它手里有没有王炸。' },
+  { id: 54, name: '飞行员喵', rarity: 'R', color: '#D6A87C', belly: '#E6C8A6', eyes: 'goggles-up', headgear: 'safari-hat', desc: '梦想开着纸箱飞向天空。' },
+  { id: 55, name: '温泉店长', rarity: 'R', color: '#FCA5A5', belly: '#FECACA', headgear: 'headband', desc: '泡在温水里就不想出来的慵懒店长。' },
+  { id: 56, name: '炼金学徒', rarity: 'R', color: '#A16207', belly: '#CA8A04', eyes: 'googly', headgear: 'goggles-up', held: 'potion', desc: '经常把自己的尾巴炸开花。' },
+  { id: 57, name: '星空守望者', rarity: 'R', color: '#1E1B4B', belly: '#312E81', eyes: 'star', headgear: 'wizard-hat', desc: '每天晚上数天上有几条银河鱼。' },
+  { id: 58, name: '名侦探喵', rarity: 'R', color: '#78716C', belly: '#A8A29E', headgear: 'detective-hat', held: 'magnifying-glass', desc: '真相只有一个：小鱼干是你吃的！' },
+  { id: 59, name: '深坑矿工', rarity: 'R', color: '#52525B', belly: '#71717A', headgear: 'miner-helmet', held: 'spatula', desc: '在猫砂盆里辛勤挖掘财宝。' },
+  { id: 60, name: '维京掠夺者', rarity: 'R', color: '#B45309', belly: '#D97706', headgear: 'viking-helmet', held: 'cleaver', desc: '为了奥丁，和无尽的猫条！' },
+  { id: 61, name: '远洋水手', rarity: 'R', color: '#E0F2FE', belly: '#FFFFFF', headgear: 'sailor-hat', tail: 'fluffy', desc: '最喜欢吃刚从海里捞上来的鱼。' },
+  { id: 62, name: '外卖突击手', rarity: 'R', color: '#FDE047', belly: '#FEF08A', headgear: 'detective-hat', bodygear: 'backpack', desc: '外卖箱里装的其实全都是自己的零食。' },
+  { id: 63, name: '健身教练喵', rarity: 'R', color: '#1F2937', belly: '#111827', headgear: 'headband', held: 'fish-bone', desc: '每天指导其他猫咪进行跑酷训练。' },
+  { id: 64, name: '塔罗占卜师', rarity: 'R', color: '#581C87', belly: '#7E22CE', headgear: 'magical-ribbon', held: 'cards', desc: '抽到了“死神”牌？这意味着你今天没有罐头。' },
+  { id: 65, name: '星际宇航员', rarity: 'R', color: '#F8FAFC', belly: '#FFFFFF', headgear: 'diving-helmet', desc: '它坚信月亮是由巨大的奶酪做成的。' },
+  { id: 66, name: '消防救援喵', rarity: 'R', color: '#EF4444', belly: '#F87171', headgear: 'miner-helmet', held: 'watering-can', desc: '哪里有炸毛的猫，哪里就有它的救援。' },
+  { id: 67, name: '寿司捏造者', rarity: 'R', color: '#FFFFFF', belly: '#FFFFFF', headgear: 'headband', held: 'fish-bone', desc: '用最高超的肉球手法捏出的三文鱼寿司。' },
+  { id: 68, name: '极地破冰者', rarity: 'R', color: '#BAE6FD', belly: '#E0F2FE', headgear: 'ice-crown', bodygear: 'backpack', desc: '在极寒的猫爬架顶端寻找传说中的冰鲜粮。' },
+  { id: 69, name: '沙漠旅行商人', rarity: 'R', color: '#D97706', belly: '#F59E0B', headgear: 'safari-hat', bodygear: 'backpack', held: 'potion', desc: '用一袋猫砂可以和它换一瓶神奇药水。' },
+  { id: 70, name: '古典魔术师', rarity: 'R', color: '#000000', belly: '#FFFFFF', eyes: 'monocle', headgear: 'top-hat', held: 'wand', desc: '大变活鱼是它的拿手好戏。' },
+
+  // ---------------- SR级 (15%) 71-85号 ----------------
+  { id: 71, name: '赛博黑客', rarity: 'SR', color: '#0F172A', belly: '#1E293B', eyes: 'cyber-visor', tail: 'mecha', bodygear: 'cyber-jacket', held: 'laptop', aura: 'neon-glow', desc: '正在入侵智能喂食器的主板...' },
+  { id: 72, name: '神圣帕拉丁', rarity: 'SR', color: '#F3F4F6', belly: '#FFFFFF', headgear: 'knight-helm', bodygear: 'armor', held: 'holy-sword', desc: '以圣光之名，审判不交罐头的人！' },
+  { id: 73, name: '深渊小恶魔', rarity: 'SR', color: '#7F1D1D', belly: '#991B1B', eyes: 'evil', tail: 'devil', bodygear: 'bat-wings', headgear: 'horns', desc: '最喜欢半夜把桌子上的杯子推下去。' },
+  { id: 74, name: '深海潜水喵', rarity: 'SR', color: '#0EA5E9', belly: '#E0F2FE', tail: 'mermaid', headgear: 'diving-helmet', desc: '尾巴进化成了鱼尾，但依然怕水。' },
+  { id: 75, name: '魔法星光少女', rarity: 'SR', color: '#FBCFE8', belly: '#FDF2F8', eyes: 'star', headgear: 'magical-ribbon', held: 'star-staff', desc: '代表月亮，消灭烦恼！' },
+  { id: 76, name: '陵墓法老猫', rarity: 'SR', color: '#D4D4D8', belly: '#E4E4E7', bodygear: 'bandages', headgear: 'pharaoh-crown', desc: '被猫砂盆香味唤醒的千年法老。' },
+  { id: 77, name: '剧毒史莱姆喵', rarity: 'SR', color: '#84CC16', belly: '#A3E635', aura: 'slime-drip', desc: '全身半透明酸液构成，其实是苹果味的。' },
+  { id: 78, name: '科学怪喵', rarity: 'SR', color: '#14532D', belly: '#166534', bodygear: 'bandages', headgear: 'goggles-up', held: 'potion', desc: '闪电与猫薄荷混合后的疯狂产物。' },
+  { id: 79, name: '亡灵幽灵猫', rarity: 'SR', color: '#99F6E4', belly: '#CCFBF1', eyes: 'ghost-eyes', aura: 'ghostly', desc: '物理攻击无效，除非拿出冻干。' },
+  { id: 80, name: '蒸汽朋克发明家', rarity: 'SR', color: '#92400E', belly: '#B45309', headgear: 'goggles-up', bodygear: 'steampunk-gear', held: 'magnifying-glass', desc: '它发明的自动逗猫机差点拆了房子。' },
+  { id: 81, name: '森林大德鲁伊', rarity: 'SR', color: '#065F46', belly: '#10B981', headgear: 'flower-crown', bodygear: 'leaf-cape', held: 'star-staff', desc: '能听懂鸟语，并指挥鸟儿给它抓虫子。' },
+  { id: 82, name: '幽灵海盗船长', rarity: 'SR', color: '#0F766E', belly: '#14B8A6', eyes: 'eyepatch', headgear: 'pirate-hat', bodygear: 'bat-wings', aura: 'ghostly', desc: '在七海之上游荡，寻找丢失的金枪鱼。' },
+  { id: 83, name: '炼狱双头恶犬(伪)', rarity: 'SR', color: '#450A0A', belly: '#7F1D1D', eyes: 'red-glow', headgear: 'horns', tail: 'dragon', aura: 'spirit-fire', desc: '虽然假装自己很可怕，但叫声依然是“喵”。' },
+  { id: 84, name: '魔法药剂大宗师', rarity: 'SR', color: '#4C1D95', belly: '#7C3AED', headgear: 'wizard-hat', held: 'potion', aura: 'slime-drip', desc: '它熬制的猫薄荷浓缩液能让猫飞上天。' },
+  { id: 85, name: '机动特警', rarity: 'SR', color: '#1E40AF', belly: '#3B82F6', eyes: 'cyber-visor', headgear: 'viking-helmet', held: 'beam-saber', desc: '专门逮捕半夜跑酷扰民的犯罪分子。' },
+
+  // ---------------- SSR级 (10%) 86-95号 ----------------
+  { id: 86, name: '星空大星象师', rarity: 'SSR', color: '#312E81', belly: '#4338CA', eyes: 'cosmic', headgear: 'galaxy-hat', bodygear: 'star-cape', desc: '长袍里装着一整个微缩宇宙。' },
+  { id: 87, name: '零号机甲巨兽', rarity: 'SSR', color: '#475569', belly: '#64748B', eyes: 'mecha-visor', headgear: 'mecha-ears', bodygear: 'mecha-suit', held: 'beam-saber', desc: '装甲厚度足以抵御任何撸猫咸猪手。' },
+  { id: 88, name: '天狐·九尾妖瞳', rarity: 'SSR', color: '#FFFFFF', belly: '#FFFFFF', eyes: 'fox-slit', tail: 'nine-tails', headgear: 'fox-mask', aura: 'spirit-fire', desc: '活了千年的猫怪，拥有魅惑人心的力量。' },
+  { id: 89, name: '赛博武士·雷切', rarity: 'SSR', color: '#1E293B', belly: '#334155', eyes: 'cyber-visor', tail: 'mecha', bodygear: 'samurai-armor', held: 'katana', aura: 'neon-glow', desc: '刀刃闪烁高频电压，斩断一切阻碍。' },
+  { id: 90, name: '凛冬冰雪女王', rarity: 'SSR', color: '#E0F2FE', belly: '#F0F9FF', headgear: 'ice-crown', aura: 'snowflakes', desc: '走过的地方，猫粮都会结冰。' },
+  { id: 91, name: '烈阳神·阿波罗', rarity: 'SSR', color: '#FEF08A', belly: '#FEF9C3', bodygear: 'golden-armor', aura: 'sun-halo', desc: '自带耀眼光芒，冬天最棒的移动暖炉。' },
+  { id: 92, name: '时空漫游者', rarity: 'SSR', color: '#FCD34D', belly: '#FDE047', eyes: 'clock-face', bodygear: 'steampunk-gear', aura: 'clock-aura', desc: '可以在不同时间的饭点之间来回穿梭。' },
+  { id: 93, name: '幻影刺客大师', rarity: 'SSR', color: '#000000', belly: '#111827', eyes: 'red-glow', headgear: 'ninja-headband', held: 'katana', aura: 'ghostly', desc: '你永远不知道它是从哪里掏出刀的。' },
+  { id: 94, name: '元素聚合体', rarity: 'SSR', color: '#A855F7', belly: '#D8B4FE', tail: 'tentacle-mass', headgear: 'halo', aura: 'rainbow-ring', desc: '掌控着水、火、土、风、以及猫砂。' },
+  { id: 95, name: '黄金巨龙神', rarity: 'SSR', color: '#B45309', belly: '#F59E0B', tail: 'dragon', bodygear: 'dragon-wings', headgear: 'pharaoh-crown', aura: 'sun-halo', desc: '睡在堆积如山的小鱼干上，守护财宝。' },
+
+  // ---------------- UR级 (5%) 全员动态特效 96-100号 ----------------
+  { id: 96, name: '混沌·克苏鲁喵', rarity: 'UR', color: '#1E1B4B', belly: '#312E81', eyes: 'multiple', mouth: 'tentacles', tail: 'tentacle-mass', headgear: 'cosmic-crown', aura: 'dark-vortex', desc: '凝视深渊，深渊会向你讨要猫条。' },
+  { id: 97, name: '薛定谔的观测者', rarity: 'UR', color: '#38BDF8', belly: '#BAE6FD', eyes: 'cyber-visor', tail: 'twin', aura: 'quantum-glitch', desc: '同时存在于开盒与未开盒的状态，概率的化身。' },
+  { id: 98, name: '真理·创世神喵', rarity: 'UR', color: '#F8FAFC', belly: '#FFFFFF', eyes: 'cosmic', headgear: 'halo', held: 'paintbrush', aura: 'sacred-geometry', tail: 'fluffy', desc: '用手中的画笔，绘制出了世界上的100只猫咪。' },
+  { id: 99, name: '维度吞噬者·阿撒托斯', rarity: 'UR', color: '#000000', belly: '#111827', eyes: 'red-glow', tail: 'dragon', aura: 'dimension-shatter', desc: '它每一次打呼噜，都会引发平行宇宙的地震。' },
+  { id: 100, name: '概念纠缠·矩阵之眼', rarity: 'UR', color: '#064E3B', belly: '#047857', eyes: 'monocle', headgear: 'cyber-visor', aura: 'matrix-rain', desc: '看透了世界是一段代码，于是它黑进了自动喂食器。' },
+];
+
+const RARITY_COLORS = {
+  'N': 'text-slate-500 bg-slate-100 border-slate-300',
+  'R': 'text-blue-500 bg-blue-50 border-blue-300',
+  'SR': 'text-purple-600 bg-purple-50 border-purple-300',
+  'SSR': 'text-amber-500 bg-amber-50 border-amber-400',
+  'UR': 'text-rose-500 bg-rose-50 border-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.6)]',
+};
+
+const GRID_COLORS = ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'];
+const EMPTY_CELL = -1;
+
+// --- 核心模块化 SVG 渲染引擎 ---
+const ComplexCatSvg = ({ cat, className }) => {
+  const bc = cat.color;
+  const belly = cat.belly;
+  const pawsColor = cat.paws || bc;
+  
+  return (
+    <div className={`relative w-full h-full ${className} ${cat.aura === 'ghostly' ? 'animate-float opacity-80' : ''}`}>
+      <svg viewBox="0 0 200 200" className={`w-full h-full overflow-visible ${cat.aura === 'quantum-glitch' ? 'animate-glitch' : 'drop-shadow-xl'}`}>
+        <defs>
+          <radialGradient id={`glow-${cat.id}`} cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#fff" stopOpacity="0.8" />
+            <stop offset="100%" stopColor={bc} stopOpacity="0" />
+          </radialGradient>
+          <pattern id="galaxy" patternUnits="userSpaceOnUse" width="200" height="200">
+            <rect width="200" height="200" fill="#0F172A" />
+            <circle cx="50" cy="50" r="2" fill="#FFF" className="animate-pulse" />
+            <circle cx="150" cy="120" r="1.5" fill="#FDE047" className="animate-pulse" />
+            <circle cx="80" cy="160" r="2.5" fill="#C084FC" />
+            <circle cx="120" cy="40" r="1" fill="#FFF" />
+          </pattern>
+        </defs>
+
+        {/* --- 特效光环 Aura (Back) --- */}
+        {cat.aura === 'neon-glow' && <circle cx="100" cy="120" r="80" fill="url(#glow-10)" opacity="0.4" />}
+        {cat.aura === 'spirit-fire' && (
+          <g fill="#38BDF8" opacity="0.7" className="animate-float">
+            <circle cx="40" cy="140" r="15" filter="blur(4px)" />
+            <circle cx="160" cy="100" r="12" filter="blur(4px)" />
+            <circle cx="50" cy="60" r="10" filter="blur(4px)" />
+          </g>
+        )}
+        {cat.aura === 'slime-drip' && (
+          <g fill="#84CC16" opacity="0.8">
+            <ellipse cx="60" cy="180" rx="20" ry="10" />
+            <ellipse cx="140" cy="175" rx="25" ry="8" />
+            <ellipse cx="100" cy="185" rx="40" ry="12" />
+          </g>
+        )}
+        {cat.aura === 'snowflakes' && (
+          <g fill="#FFF" opacity="0.8" className="animate-spin-slow" style={{ transformOrigin: '100px 100px' }}>
+             <polygon points="20,20 25,10 30,20 40,25 30,30 25,40 20,30 10,25" />
+             <polygon points="170,40 173,32 176,40 184,43 176,46 173,54 170,46 162,43" />
+             <polygon points="160,160 164,150 168,160 178,164 168,168 164,178 160,168 150,164" />
+          </g>
+        )}
+        {cat.aura === 'sun-halo' && (
+          <g transform="translate(100, 120)" className="animate-spin-slow">
+             {[0, 45, 90, 135, 180, 225, 270, 315].map(angle => (
+               <polygon key={angle} points="-5,-80 5,-80 0,-100" fill="#FDE047" transform={`rotate(${angle})`} />
+             ))}
+             <circle cx="0" cy="0" r="70" fill="none" stroke="#FDE047" strokeWidth="4" />
+          </g>
+        )}
+        {cat.aura === 'clock-aura' && (
+          <g transform="translate(100, 120)">
+             <circle cx="0" cy="0" r="75" fill="none" stroke="#D97706" strokeWidth="2" strokeDasharray="10 5" className="animate-spin-slow-reverse" />
+             <line x1="0" y1="0" x2="0" y2="-50" stroke="#FDE047" strokeWidth="3" className="animate-spin-slow" />
+          </g>
+        )}
+        {cat.aura === 'rainbow-ring' && (
+          <g transform="translate(100, 120)">
+            <circle cx="0" cy="0" r="80" fill="none" stroke="#EF4444" strokeWidth="3" opacity="0.8" />
+            <circle cx="0" cy="0" r="75" fill="none" stroke="#F59E0B" strokeWidth="3" opacity="0.8" />
+            <circle cx="0" cy="0" r="70" fill="none" stroke="#10B981" strokeWidth="3" opacity="0.8" />
+            <circle cx="0" cy="0" r="65" fill="none" stroke="#3B82F6" strokeWidth="3" opacity="0.8" />
+            <circle cx="0" cy="0" r="60" fill="none" stroke="#A855F7" strokeWidth="3" opacity="0.8" />
+          </g>
+        )}
+        
+        {/* UR 专属超级动效 */}
+        {cat.aura === 'dark-vortex' && (
+          <g transform="translate(100, 100)" className="animate-spin-slow">
+             <path d="M 0 0 C 60 0, 100 60, 0 100 C -100 60, -60 0, 0 0" fill="none" stroke="#4C1D95" strokeWidth="12" filter="blur(6px)" opacity="0.8" />
+             <path d="M 0 0 C -60 0, -100 -60, 0 -100 C 100 -60, 60 0, 0 0" fill="none" stroke="#000000" strokeWidth="15" filter="blur(3px)" opacity="0.7" />
+             <circle cx="0" cy="0" r="50" fill="#000" filter="blur(8px)" />
+          </g>
+        )}
+        {cat.aura === 'sacred-geometry' && (
+          <g transform="translate(100, 100)">
+            <g className="animate-spin-slow">
+              <polygon points="0,-80 70,40 -70,40" fill="none" stroke="#FDE047" strokeWidth="3" opacity="0.9" />
+              <polygon points="0,80 70,-40 -70,-40" fill="none" stroke="#FDE047" strokeWidth="3" opacity="0.9" />
+            </g>
+            <circle cx="0" cy="0" r="85" fill="none" stroke="#60A5FA" strokeWidth="3" strokeDasharray="15 10" className="animate-spin-slow-reverse" />
+            <circle cx="0" cy="0" r="70" fill="none" stroke="#F472B6" strokeWidth="2" strokeDasharray="5 5" className="animate-spin-slow" />
+          </g>
+        )}
+        {cat.aura === 'dimension-shatter' && (
+          <g transform="translate(100, 100)">
+             <polygon points="-50,-50 -20,-80 10,-40" fill="none" stroke="#EF4444" strokeWidth="2" className="animate-float" />
+             <polygon points="60,-20 90,10 40,40" fill="none" stroke="#3B82F6" strokeWidth="2" className="animate-float" style={{animationDelay:'0.5s'}} />
+             <polygon points="-60,40 -80,-10 -30,10" fill="none" stroke="#10B981" strokeWidth="2" className="animate-float" style={{animationDelay:'1s'}} />
+             <polygon points="-20,60 10,90 40,50" fill="none" stroke="#F59E0B" strokeWidth="2" className="animate-float" style={{animationDelay:'1.5s'}} />
+          </g>
+        )}
+        {cat.aura === 'matrix-rain' && (
+          <g transform="translate(100, 100)" className="animate-matrix-fall">
+             <line x1="-80" y1="-100" x2="-80" y2="100" stroke="#10B981" strokeWidth="2" strokeDasharray="10 20" opacity="0.6" />
+             <line x1="-40" y1="-100" x2="-40" y2="100" stroke="#10B981" strokeWidth="4" strokeDasharray="5 30" opacity="0.8" />
+             <line x1="0" y1="-100" x2="0" y2="100" stroke="#10B981" strokeWidth="1" strokeDasharray="15 15" opacity="0.5" />
+             <line x1="40" y1="-100" x2="40" y2="100" stroke="#10B981" strokeWidth="3" strokeDasharray="8 25" opacity="0.9" />
+             <line x1="80" y1="-100" x2="80" y2="100" stroke="#10B981" strokeWidth="2" strokeDasharray="20 10" opacity="0.7" />
+          </g>
+        )}
+
+        {/* --- 尾巴 Tail --- */}
+        <g id="tail">
+          {cat.tail === 'normal' && <path d="M 140 160 Q 180 160 170 110" fill="none" stroke={bc} strokeWidth="15" strokeLinecap="round" />}
+          {cat.tail === 'fluffy' && <path d="M 130 160 C 180 180, 200 120, 160 90 C 140 70, 130 130, 140 160" fill={bc} stroke="rgba(0,0,0,0.1)" strokeWidth="2" />}
+          {cat.tail === 'twin' && (
+            <>
+              <path d="M 140 160 Q 180 170 190 130" fill="none" stroke={bc} strokeWidth="12" strokeLinecap="round" />
+              <path d="M 140 160 Q 160 120 180 90" fill="none" stroke={bc} strokeWidth="12" strokeLinecap="round" />
+            </>
+          )}
+          {cat.tail === 'devil' && (
+            <g>
+              <path d="M 130 160 Q 180 150 170 100" fill="none" stroke={bc} strokeWidth="6" />
+              <polygon points="170,100 160,80 180,80" fill={bc} />
+            </g>
+          )}
+          {cat.tail === 'mermaid' && (
+            <path d="M 120 170 Q 180 190 190 160 Q 160 160 170 130 Q 150 150 120 170" fill="#0EA5E9" stroke="#0369A1" strokeWidth="2" />
+          )}
+          {cat.tail === 'mecha' && (
+            <g stroke="#94A3B8" strokeWidth="8" fill="none">
+              <path d="M 130 150 L 150 160 L 170 140 L 180 110" />
+              <circle cx="180" cy="110" r="6" fill="#EF4444" stroke="none" />
+            </g>
+          )}
+          {cat.tail === 'nine-tails' && (
+            <g fill={bc} stroke="#E5E7EB" strokeWidth="2" opacity="0.9">
+              {[0, 15, 30, 45, 60, -15, -30, -45, -60].map((angle, i) => (
+                <path key={i} d={`M 100 160 Q ${100 + angle*2} 80 ${100 + angle*1.5} 40 Q ${100 + angle} 100 100 160`} />
+              ))}
+            </g>
+          )}
+          {cat.tail === 'tentacle-mass' && (
+            <g fill="#4338CA" stroke="#1E1B4B" strokeWidth="2">
+              <path d="M 80 160 Q 40 180 20 140 Q 50 150 80 160" />
+              <path d="M 120 160 Q 160 190 180 150 Q 150 160 120 160" />
+              <path d="M 100 170 Q 100 210 140 200 Q 120 180 100 170" />
+            </g>
+          )}
+          {cat.tail === 'dragon' && (
+            <path d="M 130 160 C 160 180, 180 160, 180 100 L 190 90 L 170 100 Z" fill="#991B1B" stroke="#7F1D1D" strokeWidth="2" />
+          )}
+        </g>
+
+        {/* --- 翅膀/背部披风 Bodygear (Back) --- */}
+        {cat.bodygear === 'bat-wings' && (
+          <g fill="#1F2937" stroke="#000" strokeWidth="2">
+            <path d="M 80 120 Q 30 80 20 40 Q 40 60 50 50 Q 60 80 80 120" />
+            <path d="M 120 120 Q 170 80 180 40 Q 160 60 150 50 Q 140 80 120 120" />
+          </g>
+        )}
+        {cat.bodygear === 'star-cape' && (
+          <path d="M 70 120 L 40 180 L 100 190 L 160 180 L 130 120 Z" fill="url(#galaxy)" stroke="#C084FC" strokeWidth="3" />
+        )}
+        {cat.bodygear === 'angel-wings' && (
+          <g fill="#FFF" stroke="#E2E8F0" strokeWidth="3">
+            <path d="M 80 110 Q 10 70 20 20 Q 40 40 50 30 Q 60 60 80 110" />
+            <path d="M 120 110 Q 190 70 180 20 Q 160 40 150 30 Q 140 60 120 110" />
+          </g>
+        )}
+        {cat.bodygear === 'dragon-wings' && (
+          <g fill="#7F1D1D" stroke="#450A0A" strokeWidth="2">
+            <path d="M 80 120 L 20 50 L 50 50 L 60 80 Z" />
+            <path d="M 120 120 L 180 50 L 150 50 L 140 80 Z" />
+          </g>
+        )}
+        {cat.bodygear === 'leaf-cape' && (
+          <path d="M 70 120 L 50 180 L 100 190 L 150 180 L 130 120 Z" fill="#166534" stroke="#14532D" strokeWidth="3" />
+        )}
+        
+        {/* --- 身体 Body --- */}
+        <g id="body">
+          {cat.aura === 'slime-drip' ? (
+             <path d="M 60 170 C 40 170, 40 110, 80 90 L 120 90 C 160 110, 160 170, 140 170 Z" fill={bc} opacity="0.9" />
+          ) : (
+             <path d="M 70 170 C 50 170, 50 110, 80 90 L 120 90 C 150 110, 150 170, 130 170 Z" fill={cat.aura === 'galaxy' ? 'url(#galaxy)' : bc} stroke="rgba(0,0,0,0.1)" strokeWidth="3" />
+          )}
+          <path d="M 85 165 C 75 165, 75 120, 100 110 C 125 120, 125 165, 115 165 Z" fill={belly} />
+          
+          {cat.bodygear === 'cardboard-box' && (
+            <g>
+              <rect x="50" y="130" width="100" height="60" fill="#D97706" stroke="#92400E" strokeWidth="3" />
+              <rect x="50" y="130" width="100" height="20" fill="#F59E0B" stroke="#92400E" strokeWidth="3" />
+              <line x1="100" y1="130" x2="100" y2="190" stroke="#92400E" strokeWidth="2" opacity="0.5" />
+              <text x="75" y="175" fill="#92400E" fontSize="16" fontWeight="bold" opacity="0.7">FRAGILE</text>
+            </g>
+          )}
+          {cat.bodygear === 'mecha-suit' && (
+            <g fill="#64748B" stroke="#0F172A" strokeWidth="3">
+              <path d="M 65 170 L 75 130 L 125 130 L 135 170 Z" />
+              <circle cx="100" cy="145" r="15" fill="#38BDF8" />
+              <rect x="60" y="150" width="20" height="25" rx="5" />
+              <rect x="120" y="150" width="20" height="25" rx="5" />
+            </g>
+          )}
+          {cat.bodygear === 'armor' && (
+            <g fill="#E2E8F0" stroke="#94A3B8" strokeWidth="3">
+              <path d="M 70 120 L 100 160 L 130 120 L 100 100 Z" fill="#F8FAFC" />
+              <path d="M 60 160 L 80 140 L 80 170 Z" />
+              <path d="M 140 160 L 120 140 L 120 170 Z" />
+              <circle cx="100" cy="130" r="10" fill="#FCD34D" stroke="#D97706" />
+            </g>
+          )}
+          {cat.bodygear === 'samurai-armor' && (
+            <g fill="#991B1B" stroke="#450A0A" strokeWidth="2">
+              <path d="M 60 110 L 80 140 L 65 160 Z" />
+              <path d="M 140 110 L 120 140 L 135 160 Z" />
+              <rect x="75" y="140" width="50" height="20" fill="#1F2937" />
+              <line x1="80" y1="145" x2="120" y2="145" stroke="#FCD34D" />
+              <line x1="80" y1="155" x2="120" y2="155" stroke="#FCD34D" />
+            </g>
+          )}
+          {cat.bodygear === 'bandages' && (
+            <g stroke="#A1A1AA" strokeWidth="4" fill="none" opacity="0.8">
+              <line x1="60" y1="120" x2="140" y2="130" />
+              <line x1="65" y1="140" x2="135" y2="135" />
+              <line x1="70" y1="160" x2="130" y2="150" />
+              <line x1="55" y1="150" x2="100" y2="170" />
+            </g>
+          )}
+          {cat.bodygear === 'golden-armor' && (
+            <g fill="#FCD34D" stroke="#B45309" strokeWidth="3">
+              <path d="M 70 110 L 100 150 L 130 110 L 100 90 Z" />
+              <circle cx="100" cy="120" r="12" fill="#EF4444" />
+            </g>
+          )}
+          {cat.bodygear === 'steampunk-gear' && (
+            <g fill="#D97706" stroke="#92400E" strokeWidth="2">
+               <circle cx="100" cy="130" r="15" strokeDasharray="4 2" className="animate-spin-slow" />
+               <circle cx="80" cy="150" r="10" strokeDasharray="3 2" className="animate-spin-slow-reverse" />
+               <rect x="100" y="125" width="20" height="10" fill="#78350F" />
+            </g>
+          )}
+          {cat.bodygear === 'backpack' && (
+            <g fill="#047857" stroke="#064E3B" strokeWidth="2">
+              <rect x="60" y="110" width="80" height="40" rx="10" />
+              <rect x="75" y="120" width="50" height="20" fill="#10B981" />
+            </g>
+          )}
+          {cat.bodygear === 'cyber-jacket' && (
+            <g fill="#0F172A" stroke="#38BDF8" strokeWidth="2">
+              <path d="M 65 170 L 75 130 L 125 130 L 135 170 Z" />
+              <line x1="100" y1="130" x2="100" y2="170" />
+            </g>
+          )}
+        </g>
+
+        {/* --- 头部 Head --- */}
+        <g id="head" transform="translate(100, 85)">
+          {/* 耳朵 */}
+          {cat.headgear !== 'mecha-ears' && cat.headgear !== 'diving-helmet' && cat.headgear !== 'paper-bag' && (
+            <>
+              <polygon points="-35,-15 -45,-55 -10,-35" fill={bc} stroke="rgba(0,0,0,0.1)" strokeWidth="2" />
+              <polygon points="-30,-20 -40,-45 -15,-30" fill="#FBCFE8" />
+              <polygon points="35,-15 45,-55 10,-35" fill={bc} stroke="rgba(0,0,0,0.1)" strokeWidth="2" />
+              <polygon points="30,-20 40,-45 15,-30" fill="#FBCFE8" />
+            </>
+          )}
+          {cat.headgear === 'mecha-ears' && (
+            <g fill="#475569" stroke="#0F172A" strokeWidth="2">
+               <polygon points="-35,-15 -50,-60 -5,-35" />
+               <polygon points="35,-15 50,-60 5,-35" />
+               <circle cx="-35" cy="-40" r="3" fill="#38BDF8" />
+               <circle cx="35" cy="-40" r="3" fill="#38BDF8" />
+            </g>
+          )}
+
+          {/* 脸部基底 */}
+          {cat.headgear !== 'paper-bag' && (
+             <circle cx="0" cy="0" r="45" fill={cat.aura === 'galaxy' ? 'url(#galaxy)' : bc} stroke="rgba(0,0,0,0.1)" strokeWidth="3" />
+          )}
+          
+          {/* 斑点 */}
+          {cat.spots && cat.headgear !== 'paper-bag' && (
+            <g opacity="0.8">
+              <path d="M -40 -10 C -30 -30, -10 -40, 0 -45 A 45 45 0 0 0 -40 -10 Z" fill={cat.spots[0]} />
+              <path d="M 40 -10 C 30 -30, 10 -40, 0 -45 A 45 45 0 0 1 40 -10 Z" fill={cat.spots[1]} />
+            </g>
+          )}
+
+          {/* 面具底层 */}
+          {cat.headgear === 'ninja-headband' && (
+            <g>
+              <rect x="-45" y="-30" width="90" height="15" fill="#1F2937" />
+              <circle cx="0" cy="-22.5" r="5" fill="#9CA3AF" />
+            </g>
+          )}
+          {cat.headgear === 'fox-mask' && (
+            <g>
+               <circle cx="0" cy="0" r="46" fill="#FFF" />
+               <path d="M -20 -10 L -40 -30 M 20 -10 L 40 -30" stroke="#EF4444" strokeWidth="4" strokeLinecap="round" />
+               <circle cx="0" cy="-25" r="6" fill="#EF4444" />
+            </g>
+          )}
+          {/* 纸袋套头 */}
+          {cat.headgear === 'paper-bag' && (
+            <g>
+              <rect x="-50" y="-70" width="100" height="100" fill="#D97706" stroke="#B45309" strokeWidth="3" rx="5" />
+              <rect x="-25" y="-10" width="15" height="15" fill="#000" rx="7.5" />
+              <rect x="10" y="-10" width="15" height="15" fill="#000" rx="7.5" />
+              <path d="M -30 -70 L -10 -85 L 10 -70 L 30 -85 L 50 -70" fill="#D97706" stroke="#B45309" strokeWidth="3" strokeLinejoin="round" />
+            </g>
+          )}
+          {cat.headgear === 'toast' && (
+            <g>
+               <rect x="-60" y="-60" width="120" height="120" rx="10" fill="#D97706" stroke="#92400E" strokeWidth="4" />
+               <rect x="-50" y="-50" width="100" height="100" rx="10" fill="#FEF3C7" />
+               <circle cx="0" cy="0" r="45" fill={bc} />
+            </g>
+          )}
+
+          {/* 眼睛 Eyes */}
+          {cat.headgear !== 'paper-bag' && (
+            <g transform="translate(0, -5)">
+              {cat.eyes === 'normal' && <><circle cx="-18" cy="0" r="6" fill="#000" /><circle cx="18" cy="0" r="6" fill="#000" /><circle cx="-20" cy="-2" r="2" fill="#FFF" /><circle cx="16" cy="-2" r="2" fill="#FFF" /></>}
+              {cat.eyes === 'happy' && <><path d="M -25 2 Q -18 -5 -11 2" stroke="#000" strokeWidth="3" fill="none" strokeLinecap="round"/><path d="M 11 2 Q 18 -5 25 2" stroke="#000" strokeWidth="3" fill="none" strokeLinecap="round"/></>}
+              {cat.eyes === 'cool' && <><path d="M -25 -2 L -11 2" stroke="#000" strokeWidth="3" fill="none" strokeLinecap="round"/><path d="M 25 -2 L 11 2" stroke="#000" strokeWidth="3" fill="none" strokeLinecap="round"/></>}
+              {cat.eyes === 'angry' && <><path d="M -25 -5 L -11 2" stroke="#000" strokeWidth="3" fill="none" strokeLinecap="round"/><path d="M 25 -5 L 11 2" stroke="#000" strokeWidth="3" fill="none" strokeLinecap="round"/><circle cx="-18" cy="2" r="4" fill="#000" /><circle cx="18" cy="2" r="4" fill="#000" /></>}
+              {cat.eyes === 'star' && <><polygon points="-18,-6 -15,0 -9,0 -14,4 -12,10 -18,6 -24,10 -22,4 -27,0 -21,0" fill="#FDE047" /><polygon points="18,-6 21,0 27,0 22,4 24,10 18,6 12,10 14,4 9,0 15,0" fill="#FDE047" /></>}
+              {cat.eyes === 'eyepatch' && <><circle cx="18" cy="0" r="6" fill="#000" /><circle cx="-18" cy="0" r="10" fill="#1F2937" /><line x1="-40" y1="-10" x2="0" y2="10" stroke="#1F2937" strokeWidth="3" /></>}
+              {cat.eyes === 'cyber-visor' && <rect x="-35" y="-8" width="70" height="16" rx="8" fill="#0284C7" stroke="#38BDF8" strokeWidth="2" className="animate-pulse" />}
+              {cat.eyes === 'mecha-visor' && <polygon points="-30,-10 30,-10 20,10 -20,10" fill="#EF4444" className="animate-pulse" />}
+              {cat.eyes === 'evil' && <><polygon points="-25,-5 -10,5 -20,10" fill="#FCD34D" /><polygon points="25,-5 10,5 20,10" fill="#FCD34D" /></>}
+              {cat.eyes === 'fox-slit' && <><path d="M -25 0 Q -18 -10 -11 0" fill="#EF4444" /><path d="M 11 0 Q 18 -10 25 0" fill="#EF4444" /></>}
+              {cat.eyes === 'mad-scientist' && <><circle cx="-18" cy="0" r="12" fill="#FFF" stroke="#94A3B8" strokeWidth="2" /><circle cx="-18" cy="0" r="3" fill="#000" /><circle cx="18" cy="0" r="8" fill="#FFF" stroke="#94A3B8" strokeWidth="2" /><circle cx="18" cy="0" r="2" fill="#000" /></>}
+              {cat.eyes === 'clock-face' && <><circle cx="-18" cy="0" r="10" fill="#FFF" stroke="#D97706" strokeWidth="2" /><line x1="-18" y1="0" x2="-18" y2="-6" stroke="#000" strokeWidth="1.5"/><line x1="-18" y1="0" x2="-12" y2="0" stroke="#000" strokeWidth="1.5"/><circle cx="18" cy="0" r="6" fill="#000" /></>}
+              {cat.eyes === 'cosmic' && <><circle cx="-18" cy="0" r="8" fill="url(#galaxy)" /><circle cx="18" cy="0" r="8" fill="url(#galaxy)" /><circle cx="-18" cy="0" r="2" fill="#FFF" className="animate-pulse" /><circle cx="18" cy="0" r="2" fill="#FFF" className="animate-pulse" /></>}
+              {cat.eyes === 'multiple' && <><circle cx="-20" cy="-10" r="5" fill="#EF4444"/><circle cx="20" cy="-10" r="5" fill="#EF4444"/><circle cx="-10" cy="10" r="6" fill="#EF4444"/><circle cx="10" cy="10" r="6" fill="#EF4444"/><circle cx="0" cy="-15" r="8" fill="#EF4444"/></>}
+              {cat.eyes === 'dead-fish' && <><line x1="-25" y1="0" x2="-11" y2="0" stroke="#000" strokeWidth="2"/><line x1="11" y1="0" x2="25" y2="0" stroke="#000" strokeWidth="2"/><circle cx="-18" cy="3" r="1" fill="#000"/><circle cx="18" cy="3" r="1" fill="#000"/></>}
+              {cat.eyes === 'monocle' && <><circle cx="-18" cy="0" r="6" fill="#000" /><circle cx="18" cy="0" r="10" fill="none" stroke="#FDE047" strokeWidth="2"/><circle cx="18" cy="0" r="6" fill="#000"/><path d="M 28 0 Q 35 15 25 30" fill="none" stroke="#FDE047" strokeWidth="1.5"/></>}
+              {cat.eyes === 'ghost-eyes' && <><circle cx="-18" cy="0" r="8" fill="#6EE7B7" opacity="0.8" filter="blur(2px)"/><circle cx="18" cy="0" r="8" fill="#6EE7B7" opacity="0.8" filter="blur(2px)"/></>}
+              {cat.eyes === 'googly' && <><circle cx="-18" cy="-5" r="10" fill="#FFF"/><circle cx="-18" cy="0" r="4" fill="#000"/><circle cx="18" cy="5" r="8" fill="#FFF"/><circle cx="18" cy="2" r="3" fill="#000"/></>}
+              {cat.eyes === 'red-glow' && <><circle cx="-18" cy="0" r="4" fill="#EF4444" filter="blur(2px)" className="animate-pulse"/><circle cx="18" cy="0" r="4" fill="#EF4444" filter="blur(2px)" className="animate-pulse"/></>}
+            </g>
+          )}
+
+          {/* 嘴巴 Mouth */}
+          {cat.headgear !== 'paper-bag' && (
+            <g transform="translate(0, 15)">
+              {cat.mouth === 'smile' && <path d="M -10 0 Q 0 8 10 0" fill="none" stroke="#000" strokeWidth="2.5" strokeLinecap="round" />}
+              {cat.mouth === 'blep' && <><path d="M -10 0 Q 0 5 10 0" fill="none" stroke="#000" strokeWidth="2.5" /><path d="M -4 2 Q 0 10 4 2 Z" fill="#F472B6" /></>}
+              {cat.mouth === 'open' && <path d="M -10 0 Q 0 15 10 0 Z" fill="#EF4444" stroke="#000" strokeWidth="2" />}
+              {cat.mouth === 'fangs' && <><path d="M -10 0 Q 0 5 10 0" fill="none" stroke="#000" strokeWidth="2.5" /><polygon points="-8,2 -4,8 -2,2" fill="#FFF" /><polygon points="8,2 4,8 2,2" fill="#FFF" /></>}
+              {cat.mouth === 'ninja-muffled' && <path d="M -20 -5 L 20 -5 L 15 15 L -15 15 Z" fill="#1F2937" />}
+              {cat.mouth === 'mecha-mask' && <polygon points="-15,0 15,0 10,15 -10,15" fill="#334155" stroke="#0F172A" strokeWidth="2" />}
+              {cat.mouth === 'tentacles' && (
+                <g fill="#4338CA" stroke="#1E1B4B" strokeWidth="1.5">
+                  <path d="M -10 0 Q -15 20 -5 25 Q 0 15 -2 0" />
+                  <path d="M 0 0 Q 5 25 15 20 Q 10 10 2 0" />
+                  <path d="M -5 0 Q 0 30 10 30 Q 5 15 5 0" />
+                </g>
+              )}
+            </g>
+          )}
+
+          {/* 头饰 Headgear */}
+          {cat.headgear === 'chef-hat' && (
+             <g fill="#FFF" stroke="rgba(0,0,0,0.1)" strokeWidth="2">
+               <path d="M -25 -40 L 25 -40 L 30 -70 C 40 -80, 20 -100, 0 -90 C -20 -100, -40 -80, -30 -70 Z" />
+             </g>
+          )}
+          {cat.headgear === 'wizard-hat' && (
+            <g>
+              <ellipse cx="0" cy="-40" rx="40" ry="10" fill="#312E81" />
+              <path d="M -25 -40 L 25 -40 L 0 -110 Z" fill="#4338CA" />
+              <circle cx="0" cy="-110" r="5" fill="#FDE047" className="animate-pulse" />
+            </g>
+          )}
+          {cat.headgear === 'safari-hat' && (
+            <g fill="#D97706" stroke="#92400E" strokeWidth="2">
+               <ellipse cx="0" cy="-35" rx="45" ry="12" />
+               <path d="M -25 -38 L 25 -38 L 15 -60 L -15 -60 Z" />
+               <rect x="-25" y="-45" width="50" height="5" fill="#1F2937" stroke="none" />
+            </g>
+          )}
+          {cat.headgear === 'pirate-hat' && (
+            <g fill="#1F2937" stroke="#000" strokeWidth="2">
+               <path d="M -50 -20 Q 0 -60 50 -20 Q 30 -10 0 -25 Q -30 -10 -50 -20 Z" />
+               <circle cx="0" cy="-35" r="5" fill="#FDE047" />
+            </g>
+          )}
+          {cat.headgear === 'flower-crown' && (
+            <g transform="translate(0, -35)">
+               <circle cx="-20" cy="5" r="8" fill="#F472B6" />
+               <circle cx="0" cy="0" r="10" fill="#FDE047" />
+               <circle cx="20" cy="5" r="8" fill="#A78BFA" />
+               <circle cx="-10" cy="8" r="6" fill="#6EE7B7" />
+               <circle cx="10" cy="8" r="6" fill="#6EE7B7" />
+            </g>
+          )}
+          {cat.headgear === 'horns' && (
+            <g fill="#1F2937" stroke="#000" strokeWidth="2">
+               <path d="M -20 -40 Q -30 -60 -15 -70 Q -10 -50 -10 -40 Z" />
+               <path d="M 20 -40 Q 30 -60 15 -70 Q 10 -50 10 -40 Z" />
+            </g>
+          )}
+          {cat.headgear === 'diving-helmet' && (
+            <g fill="#FCD34D" stroke="#B45309" strokeWidth="4" opacity="0.9">
+               <circle cx="0" cy="0" r="50" fill="none" />
+               <circle cx="0" cy="-5" r="25" fill="#38BDF8" opacity="0.5" />
+               <line x1="-25" y1="-5" x2="25" y2="-5" />
+               <line x1="0" y1="-30" x2="0" y2="20" />
+            </g>
+          )}
+          {cat.headgear === 'magical-ribbon' && (
+            <g fill="#F472B6" stroke="#BE185D" strokeWidth="2" transform="translate(0, -45)">
+               <polygon points="0,0 -30,-20 -20,10" />
+               <polygon points="0,0 30,-20 20,10" />
+               <circle cx="0" cy="0" r="6" fill="#FDE047" />
+            </g>
+          )}
+          {cat.headgear === 'galaxy-hat' && (
+            <g>
+              <path d="M -30 -35 Q 0 -90 30 -35 Z" fill="url(#galaxy)" stroke="#A78BFA" strokeWidth="2" />
+              <circle cx="0" cy="-80" r="10" fill="#FDE047" opacity="0.8" className="animate-pulse" />
+            </g>
+          )}
+          {cat.headgear === 'goggles-up' && (
+            <g transform="translate(0, -35)">
+               <rect x="-30" y="-10" width="60" height="8" fill="#1F2937" />
+               <circle cx="-15" cy="-6" r="12" fill="#E2E8F0" stroke="#B45309" strokeWidth="3" />
+               <circle cx="15" cy="-6" r="12" fill="#E2E8F0" stroke="#B45309" strokeWidth="3" />
+            </g>
+          )}
+          {cat.headgear === 'cosmic-crown' && (
+            <g transform="translate(0, -50)">
+               <polygon points="-20,10 -30,-20 -10,-5 0,-30 10,-5 30,-20 20,10" fill="#000" stroke="#C084FC" strokeWidth="2" />
+               <circle cx="0" cy="-30" r="4" fill="#FDE047" className="animate-ping" />
+            </g>
+          )}
+          {cat.headgear === 'mohawk' && (
+            <path d="M 0 -45 Q -20 -80 0 -90 Q 20 -80 0 -45 Z" fill="#EF4444" />
+          )}
+          {cat.headgear === 'headband' && (
+            <path d="M -42 -20 Q 0 -30 42 -20" fill="none" stroke="#FFF" strokeWidth="8" strokeLinecap="round" />
+          )}
+          {cat.headgear === 'top-hat' && (
+            <g transform="translate(0, -35)">
+               <rect x="-40" y="-5" width="80" height="10" fill="#1F2937" rx="2"/>
+               <rect x="-25" y="-55" width="50" height="50" fill="#1F2937" />
+               <rect x="-25" y="-15" width="50" height="10" fill="#EF4444" />
+            </g>
+          )}
+          {cat.headgear === 'pharaoh-crown' && (
+            <g transform="translate(0, -45)">
+               <path d="M -40 20 L -30 -30 Q 0 -60 30 -30 L 40 20 Z" fill="#FDE047" stroke="#B45309" strokeWidth="2" />
+               <path d="M -30 -30 Q 0 -60 30 -30" fill="none" stroke="#1D4ED8" strokeWidth="4" />
+               <path d="M -35 -10 L 35 -10 M -38 5 L 38 5 M -40 20 L 40 20" stroke="#1D4ED8" strokeWidth="4" />
+               <rect x="-5" y="-45" width="10" height="20" fill="#EF4444" rx="3" />
+            </g>
+          )}
+          {cat.headgear === 'ice-crown' && (
+            <g transform="translate(0, -45)" fill="#7DD3FC" stroke="#0284C7" strokeWidth="2" opacity="0.9">
+               <polygon points="-30,10 -40,-20 -20,-10 -10,-40 0,-15 10,-40 20,-10 40,-20 30,10" />
+            </g>
+          )}
+          {cat.headgear === 'detective-hat' && (
+            <g fill="#78716C" stroke="#44403C" strokeWidth="2" transform="translate(0, -40)">
+               <ellipse cx="0" cy="5" rx="45" ry="10" />
+               <path d="M -25 5 C -25 -25, 25 -25, 25 5 Z" />
+               <circle cx="0" cy="-20" r="3" fill="#A8A29E" />
+            </g>
+          )}
+          {cat.headgear === 'miner-helmet' && (
+            <g fill="#FDE047" stroke="#B45309" strokeWidth="2" transform="translate(0, -40)">
+               <path d="M -35 10 C -35 -25, 35 -25, 35 10 Z" />
+               <rect x="-10" y="-15" width="20" height="15" rx="2" fill="#E2E8F0" />
+               <circle cx="0" cy="-7" r="5" fill="#FFF" className="animate-pulse" />
+            </g>
+          )}
+          {cat.headgear === 'sailor-hat' && (
+            <g fill="#FFF" stroke="#1D4ED8" strokeWidth="2" transform="translate(0, -40)">
+               <path d="M -30 10 C -40 -10, 40 -10, 30 10 Z" />
+               <rect x="-30" y="5" width="60" height="5" fill="#1D4ED8" />
+            </g>
+          )}
+          {cat.headgear === 'viking-helmet' && (
+            <g fill="#9CA3AF" stroke="#374151" strokeWidth="2" transform="translate(0, -40)">
+               <path d="M -35 10 C -35 -20, 35 -20, 35 10 Z" />
+               <path d="M -25 -5 Q -40 -30 -50 -20 Q -30 0 -25 -5 Z" fill="#F3F4F6" />
+               <path d="M 25 -5 Q 40 -30 50 -20 Q 30 0 25 -5 Z" fill="#F3F4F6" />
+            </g>
+          )}
+          {cat.headgear === 'halo' && (
+            <ellipse cx="0" cy="-60" rx="35" ry="12" fill="none" stroke="#FDE047" strokeWidth="4" filter="drop-shadow(0 0 4px #FDE047)" />
+          )}
+        </g>
+
+        {/* --- 爪子 (前景) Paws --- */}
+        <g id="front-paws">
+          <circle cx="85" cy="165" r="12" fill={pawsColor} stroke="rgba(0,0,0,0.1)" strokeWidth="2" />
+          <circle cx="115" cy="165" r="12" fill={pawsColor} stroke="rgba(0,0,0,0.1)" strokeWidth="2" />
+          <circle cx="85" cy="168" r="4" fill="#FBCFE8" />
+          <circle cx="115" cy="168" r="4" fill="#FBCFE8" />
+        </g>
+
+        {/* --- 手持道具 Held Items --- */}
+        <g id="held-items" transform="translate(130, 140)">
+           {cat.held === 'spatula' && (
+             <g transform="rotate(30)">
+                <rect x="-2" y="-30" width="4" height="40" fill="#D1D5DB" />
+                <rect x="-10" y="-40" width="20" height="15" rx="2" fill="#9CA3AF" />
+             </g>
+           )}
+           {cat.held === 'wand' && (
+             <g transform="rotate(45)">
+                <rect x="-2" y="-20" width="4" height="30" fill="#78350F" />
+                <circle cx="0" cy="-25" r="6" fill="#FDE047" className="animate-pulse" />
+             </g>
+           )}
+           {cat.held === 'kunai' && (
+             <g transform="rotate(120)">
+                <polygon points="0,-20 -5,0 0,5 5,0" fill="#E2E8F0" stroke="#475569" strokeWidth="1" />
+                <rect x="-1.5" y="5" width="3" height="10" fill="#1F2937" />
+                <circle cx="0" cy="17" r="3" fill="none" stroke="#1F2937" strokeWidth="1.5" />
+             </g>
+           )}
+           {cat.held === 'hook' && (
+             <g transform="translate(-10, 20)">
+                <path d="M 0 0 C 20 -20, -10 -30, -5 -10" fill="none" stroke="#9CA3AF" strokeWidth="4" strokeLinecap="round" />
+                <rect x="-8" y="0" width="16" height="10" fill="#475569" />
+             </g>
+           )}
+           {cat.held === 'watering-can' && (
+             <g transform="translate(-10, 10)">
+                <rect x="-15" y="-10" width="20" height="20" rx="2" fill="#38BDF8" />
+                <path d="M 5 -5 L 15 -15 L 18 -12 L 5 0" fill="#0EA5E9" />
+                <path d="M -15 0 C -25 -5, -25 5, -15 10" fill="none" stroke="#0EA5E9" strokeWidth="3" />
+             </g>
+           )}
+           {cat.held === 'holy-sword' && (
+             <g transform="rotate(15)">
+                <rect x="-2" y="-40" width="4" height="50" fill="#E2E8F0" stroke="#94A3B8" strokeWidth="1" />
+                <rect x="-10" y="-5" width="20" height="4" fill="#FCD34D" />
+                <circle cx="0" cy="10" r="3" fill="#FCD34D" />
+             </g>
+           )}
+           {cat.held === 'star-staff' && (
+             <g transform="rotate(25)">
+                <rect x="-2" y="-30" width="4" height="50" fill="#FBCFE8" />
+                <polygon points="0,-40 -10,-25 10,-25" fill="#FDE047" />
+                <polygon points="0,-15 -10,-30 10,-30" fill="#FDE047" />
+             </g>
+           )}
+           {cat.held === 'beam-saber' && (
+             <g transform="rotate(30)">
+                <rect x="-3" y="0" width="6" height="15" fill="#475569" />
+                <rect x="-4" y="-50" width="8" height="50" fill="#EF4444" opacity="0.8" filter="blur(2px)" className="animate-pulse" />
+                <rect x="-1.5" y="-50" width="3" height="50" fill="#FFF" />
+             </g>
+           )}
+           {cat.held === 'potion' && (
+             <g transform="translate(-10, 10)">
+                <polygon points="-5,-10 5,-10 10,5 -10,5" fill="#22C55E" opacity="0.8" />
+                <rect x="-3" y="-15" width="6" height="5" fill="#E2E8F0" />
+                <circle cx="0" cy="0" r="2" fill="#FFF" className="animate-ping" />
+             </g>
+           )}
+           {cat.held === 'coffee' && (
+             <g transform="translate(-10, 10)">
+                <polygon points="-8,-15 8,-15 5,5 -5,5" fill="#FFF" stroke="#E2E8F0" strokeWidth="2" />
+                <rect x="-8" y="-10" width="16" height="5" fill="#10B981" />
+                <path d="M 0 -18 Q 5 -25 -5 -30" fill="none" stroke="#9CA3AF" strokeWidth="2" opacity="0.5" className="animate-pulse" />
+             </g>
+           )}
+           {cat.held === 'guitar' && (
+             <g transform="rotate(-30) translate(-20, 0)">
+                <ellipse cx="0" cy="0" rx="15" ry="20" fill="#EF4444" stroke="#991B1B" strokeWidth="2" />
+                <circle cx="0" cy="5" r="5" fill="#1F2937" />
+                <rect x="-2.5" y="-40" width="5" height="40" fill="#D97706" />
+             </g>
+           )}
+           {cat.held === 'bow' && (
+             <g transform="rotate(45) translate(-10, -10)">
+                <path d="M 0 -20 Q -15 0 0 20" fill="none" stroke="#FDE047" strokeWidth="3" />
+                <line x1="0" y1="-20" x2="0" y2="20" stroke="#E2E8F0" strokeWidth="1" />
+                <line x1="-15" y1="0" x2="10" y2="0" stroke="#F472B6" strokeWidth="2" />
+                <polygon points="10,0 5,-3 5,3" fill="#F472B6" />
+             </g>
+           )}
+           {cat.held === 'cleaver' && (
+             <g transform="rotate(15)">
+                <rect x="-4" y="0" width="8" height="15" fill="#78350F" />
+                <rect x="-15" y="-30" width="20" height="30" fill="#E2E8F0" stroke="#94A3B8" strokeWidth="1" />
+             </g>
+           )}
+           {cat.held === 'cards' && (
+             <g transform="rotate(10)">
+                <rect x="-10" y="-20" width="15" height="20" fill="#FFF" stroke="#000" strokeWidth="1" transform="rotate(-15)" />
+                <rect x="-5" y="-20" width="15" height="20" fill="#FFF" stroke="#000" strokeWidth="1" />
+                <rect x="0" y="-20" width="15" height="20" fill="#FFF" stroke="#000" strokeWidth="1" transform="rotate(15)" />
+                <circle cx="-5" cy="-10" r="2" fill="#EF4444" />
+             </g>
+           )}
+           {cat.held === 'katana' && (
+             <g transform="rotate(45) translate(0, -20)">
+                <rect x="-2" y="-40" width="4" height="40" fill="#E2E8F0" />
+                <rect x="-6" y="0" width="12" height="4" fill="#FCD34D" />
+                <rect x="-3" y="4" width="6" height="15" fill="#1F2937" />
+                <path d="M -2 -40 Q 5 -20 -2 0" fill="none" stroke="#38BDF8" strokeWidth="1" className="animate-pulse" />
+             </g>
+           )}
+           {cat.held === 'paintbrush' && (
+             <g transform="rotate(20)">
+                <rect x="-2" y="-20" width="4" height="30" fill="#D97706" />
+                <path d="M -2 -20 Q 0 -30 2 -20 Z" fill="#EF4444" />
+                <circle cx="0" cy="-35" r="3" fill="#3B82F6" className="animate-bounce" />
+             </g>
+           )}
+           {cat.held === 'magnifying-glass' && (
+             <g transform="rotate(30) translate(-10, 0)">
+                <rect x="-2" y="0" width="4" height="15" fill="#78350F" />
+                <circle cx="0" cy="-10" r="10" fill="#E0F2FE" stroke="#FDE047" strokeWidth="3" opacity="0.8" />
+             </g>
+           )}
+           {cat.held === 'fish-bone' && (
+             <g transform="rotate(-20) translate(-20, 10)">
+                <line x1="-15" y1="0" x2="15" y2="0" stroke="#FFF" strokeWidth="2" />
+                <line x1="-5" y1="-5" x2="-5" y2="5" stroke="#FFF" strokeWidth="2" />
+                <line x1="0" y1="-4" x2="0" y2="4" stroke="#FFF" strokeWidth="2" />
+                <line x1="5" y1="-5" x2="5" y2="5" stroke="#FFF" strokeWidth="2" />
+                <polygon points="15,0 20,-3 20,3" fill="#FFF" />
+             </g>
+           )}
+           {cat.held === 'laptop' && (
+             <g transform="translate(-30, 0)">
+                <polygon points="-15,0 15,0 20,10 -20,10" fill="#94A3B8" />
+                <rect x="-12" y="-15" width="24" height="15" fill="#334155" />
+                <rect x="-10" y="-13" width="20" height="11" fill="#38BDF8" className="animate-pulse" />
+             </g>
+           )}
+        </g>
+      </svg>
+    </div>
+  );
+};
+
+export default function CatGachaGame() {
+  const [yarn, setYarn] = useState(40); // 初始降低为 40 
+  const [collection, setCollection] = useState([]); 
+  
+  // 染色游戏状态 
+  const BOARD_SIZE = 12;
+  const MAX_MOVES = 18; // 步数变少，增加难度
+  const [board, setBoard] = useState([]);
+  const [moves, setMoves] = useState(0);
+  const [gameState, setGameState] = useState({ status: 'playing', reward: 0, bonus: 0 }); // playing, won, lost
+  const [startPos, setStartPos] = useState([0,0]); 
+  
+  const [summonState, setSummonState] = useState('idle'); 
+  const [summonResult, setSummonResult] = useState(null); 
+  const SUMMON_COST = 50;
+
+  // 生成不规则网格
+  const generateIrregularBoard = useCallback(() => {
+    let newBoard = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(EMPTY_CELL));
+    const TARGET_CELLS = Math.floor((BOARD_SIZE * BOARD_SIZE) * 0.65); 
+    let currentCells = 0;
+    
+    let cr = Math.floor(BOARD_SIZE / 2);
+    let cc = Math.floor(BOARD_SIZE / 2);
+    
+    newBoard[cr][cc] = Math.floor(Math.random() * GRID_COLORS.length);
+    currentCells++;
+
+    while (currentCells < TARGET_CELLS) {
+      const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+      const randomDir = dirs[Math.floor(Math.random() * dirs.length)];
+      cr += randomDir[0];
+      cc += randomDir[1];
+
+      if (cr >= 0 && cr < BOARD_SIZE && cc >= 0 && cc < BOARD_SIZE) {
+        if (newBoard[cr][cc] === EMPTY_CELL) {
+          newBoard[cr][cc] = Math.floor(Math.random() * GRID_COLORS.length);
+          currentCells++;
+        }
+      } else {
+        cr = Math.floor(BOARD_SIZE / 2) + Math.floor(Math.random()*4 - 2);
+        cc = Math.floor(BOARD_SIZE / 2) + Math.floor(Math.random()*4 - 2);
+      }
+    }
+
+    let sR = 0, sC = 0;
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        if (newBoard[r][c] !== EMPTY_CELL) { sR = r; sC = c; break; }
+      }
+      if (newBoard[sR][sC] !== EMPTY_CELL) break;
+    }
+
+    setStartPos([sR, sC]);
+    setBoard(newBoard);
+    setMoves(0);
+    setGameState({ status: 'playing', reward: 0, bonus: 0 });
+  }, []);
+
+  useEffect(() => { generateIrregularBoard(); }, [generateIrregularBoard]);
+
+  // 染色逻辑
+  const handleColorClick = (targetColorIdx) => {
+    if (gameState.status !== 'playing') return;
+    const [sr, sc] = startPos;
+    const startColorIdx = board[sr][sc];
+    if (startColorIdx === targetColorIdx) return;
+
+    const newBoard = JSON.parse(JSON.stringify(board));
+    const queue = [[sr, sc]];
+    const visited = new Set([`${sr},${sc}`]);
+    newBoard[sr][sc] = targetColorIdx;
+
+    while (queue.length > 0) {
+      const [r, c] = queue.shift();
+      const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+      for (let [dr, dc] of dirs) {
+        const nr = r + dr;
+        const nc = c + dc;
+        if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
+          if (!visited.has(`${nr},${nc}`) && board[nr][nc] === startColorIdx) {
+            visited.add(`${nr},${nc}`);
+            newBoard[nr][nc] = targetColorIdx;
+            queue.push([nr, nc]);
+          }
+        }
+      }
+    }
+
+    setBoard(newBoard);
+    const newMoves = moves + 1;
+    setMoves(newMoves);
+
+    let isWin = true;
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        if (newBoard[r][c] !== EMPTY_CELL && newBoard[r][c] !== targetColorIdx) {
+          isWin = false; break;
+        }
+      }
+    }
+
+    if (isWin) {
+      const bonus = (MAX_MOVES - newMoves) * 3;
+      const totalReward = 10 + bonus;
+      setGameState({ status: 'won', reward: totalReward, bonus: bonus });
+      setYarn(prev => prev + totalReward);
+    } else if (newMoves >= MAX_MOVES) {
+      setGameState({ status: 'lost', reward: 0, bonus: 0 });
+      // 失败扣除 5 个货币
+      setYarn(prev => Math.max(0, prev - 5));
+    }
+  };
+
+  // 放弃重开扣除货币
+  const handleGiveUp = () => {
+    if (gameState.status === 'playing' && moves > 0) {
+      setYarn(prev => Math.max(0, prev - 5));
+    }
+    generateIrregularBoard();
+  };
+
+  // 盲盒抽卡流程 
+  const handleSummon = () => {
+    if (yarn < SUMMON_COST || summonState !== 'idle') return;
+    setYarn(prev => prev - SUMMON_COST);
+    
+    // N(40%) R(30%) SR(15%) SSR(10%) UR(5%)
+    const roll = Math.random() * 100;
+    let pool = [];
+    if (roll < 40) pool = CAT_DICTIONARY.filter(c => c.rarity === 'N'); 
+    else if (roll < 70) pool = CAT_DICTIONARY.filter(c => c.rarity === 'R'); 
+    else if (roll < 85) pool = CAT_DICTIONARY.filter(c => c.rarity === 'SR'); 
+    else if (roll < 95) pool = CAT_DICTIONARY.filter(c => c.rarity === 'SSR'); 
+    else pool = CAT_DICTIONARY.filter(c => c.rarity === 'UR'); 
+
+    const pulledCat = pool[Math.floor(Math.random() * pool.length)];
+    const isNew = !collection.includes(pulledCat.id);
+
+    setSummonState('dropping');
+    setTimeout(() => {
+      setSummonState('shaking');
+      setTimeout(() => {
+        setSummonState('bursting');
+        setTimeout(() => {
+          setSummonState('revealed');
+          setSummonResult({ cat: pulledCat, isNew });
+          if (isNew) {
+            setCollection(prev => [...prev, pulledCat.id]);
+          } else {
+            setYarn(prev => prev + 15);
+          }
+        }, 500); 
+      }, 1200); 
+    }, 600); 
+  };
+
+  const closeResult = () => {
+    setSummonState('idle');
+    setSummonResult(null);
+  };
+
+  const progress = Math.round((collection.length / CAT_DICTIONARY.length) * 100);
+
+  return (
+    <div className="min-h-screen bg-pink-50 text-slate-800 font-sans p-4 md:p-6 flex flex-col">
+      <header className="flex justify-between items-center bg-white/80 backdrop-blur p-4 rounded-3xl shadow-sm mb-6 border border-pink-100">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-pink-500 rounded-2xl flex items-center justify-center rotate-3 shadow-lg shadow-pink-200">
+            <Package className="text-white w-7 h-7" />
+          </div>
+          <h1 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight">喵星盲盒商店</h1>
+        </div>
+        <div className="flex items-center bg-white px-5 py-2.5 rounded-2xl border-2 border-pink-100 shadow-inner">
+          <span className="text-sm text-pink-400 font-bold mr-2 hidden sm:inline">魔法毛线</span>
+          <span className="text-2xl font-black text-pink-500 flex items-center gap-2 transition-all">
+            {yarn} <span className="text-2xl">🧶</span>
+          </span>
+        </div>
+      </header>
+
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* 左侧：不规则染线解谜 */}
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col items-center relative overflow-hidden">
+          <div className="w-full flex justify-between items-center mb-4">
+            <div>
+              <h2 className="text-lg font-black text-slate-700">整理魔法线团</h2>
+              <p className="text-xs text-slate-400 mt-1">从 <span className="font-bold text-pink-500">闪烁起点</span> 统领同色！步数越少奖励越高。</p>
+            </div>
+            <div className="text-right bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100">
+              <span className="text-xs font-bold text-slate-400 block mb-1">剩余步数</span>
+              <div className={`text-3xl font-black leading-none ${MAX_MOVES - moves <= 3 ? 'text-red-500 animate-pulse' : 'text-slate-700'}`}>
+                {MAX_MOVES - moves}
+              </div>
+            </div>
+          </div>
+
+          <div className="p-2 sm:p-4 mb-6 relative w-full max-w-md flex justify-center items-center flex-1">
+            <div 
+              className="grid gap-1 relative" 
+              style={{ gridTemplateColumns: `repeat(${BOARD_SIZE}, minmax(0, 1fr))`, width: '100%', aspectRatio: '1/1' }}
+            >
+              {board.map((row, r) => 
+                row.map((colorIdx, c) => {
+                  const isStart = (r === startPos[0] && c === startPos[1]);
+                  const isEmpty = colorIdx === EMPTY_CELL;
+                  return (
+                    <div 
+                      key={`${r}-${c}`} 
+                      className={`
+                        aspect-square transition-all duration-300 relative rounded-md
+                        ${isEmpty ? 'bg-transparent' : 'shadow-sm hover:scale-105'}
+                      `}
+                      style={{ 
+                        backgroundColor: isEmpty ? 'transparent' : GRID_COLORS[colorIdx],
+                        boxShadow: isEmpty ? 'none' : 'inset 0 2px 4px rgba(255,255,255,0.4), inset 0 -2px 4px rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      {isStart && gameState.status === 'playing' && (
+                        <div className="absolute inset-0 border-2 border-white rounded-md bg-white/40 animate-pulse z-10 flex items-center justify-center">
+                           <div className="w-2 h-2 bg-white rounded-full shadow-md"></div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })
+              )}
+            </div>
+
+            {/* 游戏结束覆盖层 */}
+            {gameState.status !== 'playing' && (
+              <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-3xl flex flex-col items-center justify-center z-20 animate-fade-in shadow-xl border border-pink-50">
+                {gameState.status === 'won' ? (
+                  <>
+                    <div className="text-5xl mb-4 animate-bounce">🧶</div>
+                    <h3 className="text-2xl font-black text-pink-500 mb-2">完美整理！</h3>
+                    <div className="flex items-center gap-2 mb-2">
+                       <span className="text-sm font-bold text-slate-400">基础 +10</span>
+                       <span className="text-sm font-bold text-pink-400 bg-pink-50 px-2 py-0.5 rounded-full">步数加成 +{gameState.bonus}</span>
+                    </div>
+                    <p className="text-lg font-black text-pink-600 border-t border-pink-100 pt-2 px-4">
+                      共获得 {gameState.reward} 毛线
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="w-16 h-16 text-red-300 mb-4" />
+                    <h3 className="text-2xl font-black text-slate-600">步数耗尽...</h3>
+                    <p className="text-sm font-bold text-red-400 mt-2 bg-red-50 px-4 py-1.5 rounded-full border border-red-100">惩罚扣除 5 🧶</p>
+                  </>
+                )}
+                <button 
+                  onClick={generateIrregularBoard}
+                  className="mt-6 flex items-center gap-2 bg-slate-800 text-white px-8 py-4 rounded-2xl font-black hover:bg-slate-700 active:scale-95 transition-all shadow-lg"
+                >
+                  <RefreshCw className="w-5 h-5" /> 下一组线团
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2 sm:gap-4 mb-2">
+            {GRID_COLORS.map((color, idx) => (
+              <button
+                key={idx}
+                onClick={() => handleColorClick(idx)}
+                disabled={gameState.status !== 'playing'}
+                className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl shadow-md hover:scale-110 active:scale-90 transition-transform focus:outline-none relative overflow-hidden border-2 border-white"
+                style={{ backgroundColor: color }}
+              >
+                 <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent"></div>
+              </button>
+            ))}
+          </div>
+          
+          <button 
+            onClick={handleGiveUp} 
+            className="text-slate-400 hover:text-red-400 text-sm font-bold flex items-center gap-1 mt-6 bg-slate-50 hover:bg-red-50 px-4 py-2 rounded-xl transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" /> 放弃这组线团 {moves > 0 ? '(-5 🧶)' : ''}
+          </button>
+        </div>
+
+        {/* 右侧：盲盒典藏合影展示柜 (100只) */}
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col relative overflow-hidden">
+          <div className="flex justify-between items-end mb-4 z-10">
+            <div>
+              <h2 className="text-xl font-black text-slate-700 flex items-center gap-2">
+                <Gift className="w-5 h-5 text-pink-400" /> 百猫典藏大合影
+              </h2>
+              <div className="w-40 h-2.5 bg-slate-100 rounded-full mt-3 overflow-hidden shadow-inner">
+                <div className="h-full bg-pink-400 transition-all duration-700 ease-out" style={{ width: `${progress}%` }} />
+              </div>
+            </div>
+            <div className="text-right bg-pink-50 px-4 py-2 rounded-2xl">
+              <span className="text-2xl font-black text-pink-500">{collection.length}</span>
+              <span className="text-pink-300 font-black text-sm"> / 100</span>
+            </div>
+          </div>
+
+          {/* 密集的网格形成百猫墙感 */}
+          <div className="flex-1 overflow-y-auto min-h-[350px] bg-slate-50 rounded-3xl p-4 border border-slate-100 mb-6 z-10 custom-scrollbar">
+            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-1 sm:gap-2">
+              {CAT_DICTIONARY.map(cat => {
+                const isUnlocked = collection.includes(cat.id);
+                return (
+                  <div 
+                    key={cat.id} 
+                    className={`
+                      relative p-1 rounded-xl flex flex-col items-center gap-1 transition-all duration-300
+                      ${isUnlocked ? 'bg-white hover:bg-pink-50 hover:-translate-y-1 hover:shadow-md cursor-pointer group' : 'opacity-[0.15]'}
+                    `}
+                    onClick={() => isUnlocked && setSummonResult({ cat, isNew: false, previewOnly: true, forceShow: true })}
+                    title={isUnlocked ? cat.name : `No.${cat.id} 未解锁`}
+                  >
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 pt-1 group-hover:scale-110 transition-transform duration-300">
+                      {isUnlocked ? (
+                         <ComplexCatSvg cat={cat} />
+                      ) : (
+                         // 未解锁的合影轮廓 (纯黑剪影)
+                         <ComplexCatSvg cat={cat} className="brightness-0 contrast-200 grayscale drop-shadow-none pointer-events-none" />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center z-10">
+            <button 
+              onClick={handleSummon}
+              disabled={yarn < SUMMON_COST || summonState !== 'idle'}
+              className={`
+                w-full relative overflow-hidden px-8 py-5 rounded-3xl font-black text-lg text-white shadow-xl transition-all
+                ${yarn >= SUMMON_COST && summonState === 'idle' 
+                  ? 'bg-pink-500 hover:bg-pink-400 hover:-translate-y-1 active:translate-y-1 shadow-pink-500/30' 
+                  : 'bg-slate-300 cursor-not-allowed shadow-none'}
+              `}
+            >
+               <span className="relative z-10 flex items-center justify-center gap-2">
+                 <Package className="w-6 h-6" />
+                 抽取盲盒 (-{SUMMON_COST} 🧶)
+               </span>
+               {yarn >= SUMMON_COST && summonState === 'idle' && (
+                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-[100%] animate-shimmer"></div>
+               )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* --- 沉浸式盲盒开启与展示弹窗 --- */}
+      {(summonState !== 'idle' || (summonResult && summonResult.forceShow)) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md" 
+             onClick={() => (summonState === 'revealed' || (summonResult && summonResult.forceShow)) ? closeResult() : null}>
+          
+          {(summonState === 'dropping' || summonState === 'shaking') && (
+            <div className={`w-48 h-48 bg-pink-500 rounded-3xl border-8 border-pink-600 flex items-center justify-center shadow-2xl relative
+                            ${summonState === 'dropping' ? 'animate-box-drop' : 'animate-box-shake'}`}>
+               <div className="absolute w-full h-8 bg-pink-600/50 top-1/2 -translate-y-1/2"></div>
+               <div className="absolute h-full w-8 bg-pink-600/50 left-1/2 -translate-x-1/2"></div>
+               <span className="text-6xl font-black text-white relative z-10 mix-blend-overlay">?</span>
+            </div>
+          )}
+
+          {summonState === 'bursting' && (
+             <div className="w-full h-full flex items-center justify-center animate-flash-bang">
+                <div className="w-20 h-20 bg-white rounded-full blur-3xl scale-[15]"></div>
+             </div>
+          )}
+
+          {(summonState === 'revealed' || (summonResult && summonResult.forceShow)) && summonResult && (
+            <div 
+              className="bg-white rounded-[2rem] p-8 max-w-sm w-full text-center shadow-2xl transform animate-item-pop relative overflow-hidden border-4 border-white"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.05]"
+                   style={{ background: 'repeating-conic-gradient(from 0deg, transparent 0deg 15deg, #000 15deg 30deg)' }}>
+              </div>
+              
+              <div className="relative z-10">
+                <h3 className="text-xl font-black text-slate-400 mb-1">
+                  {summonResult.previewOnly ? `NO.${summonResult.cat.id} 图鉴详情` : (summonResult.isNew ? '✨ 哇！新图鉴解锁！ ✨' : '获得了重复款式')}
+                </h3>
+                
+                <div className="my-8 flex justify-center">
+                  <div className="w-64 h-64 relative group">
+                    {(summonResult.cat.rarity === 'SSR' || summonResult.cat.rarity === 'UR') && (
+                      <div className="absolute inset-0 bg-yellow-400/20 rounded-full blur-2xl animate-pulse"></div>
+                    )}
+                    <ComplexCatSvg cat={summonResult.cat} className="animate-float-large" />
+                  </div>
+                </div>
+
+                <div className={`inline-block px-5 py-2 rounded-xl font-black text-sm shadow-sm mb-4 border-2 border-white/50 ${RARITY_COLORS[summonResult.cat.rarity]}`}>
+                  盲盒稀有度：{summonResult.cat.rarity}
+                </div>
+                
+                <h4 className="text-3xl font-black text-slate-800 mb-4">{summonResult.cat.name}</h4>
+                <p className="text-base text-slate-600 bg-slate-50 p-5 rounded-2xl mb-8 border border-slate-100 leading-relaxed font-medium">
+                  "{summonResult.cat.desc}"
+                </p>
+
+                {!summonResult.isNew && !summonResult.previewOnly && (
+                  <p className="text-sm text-pink-500 font-bold mb-6 bg-pink-50 py-3 rounded-xl border border-pink-100 flex items-center justify-center gap-2">
+                    已转化为魔法毛线返还 <span className="text-lg">+15 🧶</span>
+                  </p>
+                )}
+
+                <button 
+                  onClick={closeResult}
+                  className="w-full bg-slate-800 text-white font-black py-4 rounded-2xl hover:bg-slate-700 active:scale-95 transition-all shadow-xl text-lg"
+                >
+                  {summonResult.previewOnly ? '收起' : '放入合影墙'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 全局动效样式 */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes box-drop {
+          0% { transform: translateY(-300px) scale(0.5); opacity: 0; }
+          60% { transform: translateY(20px) scale(1.1); opacity: 1; }
+          80% { transform: translateY(-10px) scale(0.95); }
+          100% { transform: translateY(0) scale(1); }
+        }
+        @keyframes box-shake {
+          0%, 100% { transform: translateX(0) rotate(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-10px) rotate(-5deg); }
+          20%, 40%, 60%, 80% { transform: translateX(10px) rotate(5deg); }
+        }
+        @keyframes flash-bang {
+          0% { opacity: 0; transform: scale(0); }
+          50% { opacity: 1; transform: scale(1); }
+          100% { opacity: 0; transform: scale(1.5); }
+        }
+        @keyframes item-pop {
+          0% { transform: scale(0.5) translateY(50px); opacity: 0; }
+          70% { transform: scale(1.05) translateY(-10px); }
+          100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        @keyframes shimmer {
+          100% { transform: translateX(100%); }
+        }
+        @keyframes float-large {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-15px); }
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-5px); }
+        }
+        @keyframes spin-slow {
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes spin-slow-reverse {
+          100% { transform: rotate(-360deg); }
+        }
+        @keyframes glitch {
+          0% { transform: translate(-2px, 2px) skewX(2deg); filter: hue-rotate(0deg); }
+          20% { transform: translate(2px, -2px) skewX(-2deg); }
+          40% { transform: translate(-2px, -2px) skewX(2deg); filter: hue-rotate(90deg); }
+          60% { transform: translate(2px, 2px) skewX(-2deg); }
+          80% { transform: translate(-2px, 2px) skewX(2deg); filter: hue-rotate(180deg); }
+          100% { transform: translate(2px, -2px) skewX(-2deg); }
+        }
+        @keyframes matrix-fall {
+          0% { transform: translateY(-20px); opacity: 0.2; }
+          50% { opacity: 1; }
+          100% { transform: translateY(20px); opacity: 0.2; }
+        }
+        .animate-matrix-fall { animation: matrix-fall 2s linear infinite; }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar:hover::-webkit-scrollbar-thumb { background: #94a3b8; }
+      `}} />
+    </div>
+  );
+}
