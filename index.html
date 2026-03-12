@@ -986,7 +986,7 @@
             const [maxMoves, setMaxMoves] = useState(18);
             const [board, setBoard] = useState([]);
             const [moves, setMoves] = useState(0);
-            const [gameState, setGameState] = useState({ status: 'playing', reward: 0, bonus: 0 }); 
+            const [gameState, setGameState] = useState({ status: 'playing', reward: 0, bonus: 0, baseReward: 0 }); 
             const [startPos, setStartPos] = useState([0,0]); 
             const [optSteps, setOptSteps] = useState(0);
             
@@ -1040,12 +1040,12 @@
                 // 启动 AI 最短步数测算器
                 const minSteps = solveFloodFill(newBoard, sR, sC, TARGET_CELLS);
                 setOptSteps(minSteps);
-                setMaxMoves(Math.max(5, minSteps + 5)); // 给玩家5步的宽容度
+                setMaxMoves(Math.max(8, minSteps + 8)); // 给玩家8步的宽容度
 
                 setStartPos([sR, sC]);
                 setBoard(newBoard);
                 setMoves(0);
-                setGameState({ status: 'playing', reward: 0, bonus: 0 });
+                setGameState({ status: 'playing', reward: 0, bonus: 0, baseReward: minSteps });
             }, []);
 
             useEffect(() => { generateIrregularBoard(); }, [generateIrregularBoard]);
@@ -1092,11 +1092,11 @@
 
                 if (isWin) {
                     const bonus = (maxMoves - newMoves) * 3;
-                    const totalReward = 10 + bonus;
-                    setGameState({ status: 'won', reward: totalReward, bonus: bonus });
+                    const totalReward = optSteps + bonus;
+                    setGameState({ status: 'won', reward: totalReward, bonus: bonus, baseReward: optSteps });
                     setYarn(prev => prev + totalReward);
                 } else if (newMoves >= maxMoves) {
-                    setGameState({ status: 'lost', reward: 0, bonus: 0 });
+                    setGameState({ status: 'lost', reward: 0, bonus: 0, baseReward: optSteps });
                     setYarn(prev => Math.max(0, prev - 5));
                 }
             };
@@ -1213,7 +1213,7 @@
                                                 <div className="text-5xl mb-4 animate-bounce">✨</div>
                                                 <h3 className="text-2xl font-black text-indigo-400 mb-2">魔法收服成功！</h3>
                                                 <div className="flex flex-col items-center gap-1 mb-4">
-                                                    <span className="text-sm font-bold text-slate-300">通关基础奖励 <span className="text-white">+10</span></span>
+                                                    <span className="text-sm font-bold text-slate-300">通关基础奖励 <span className="text-white">+{gameState.baseReward || optSteps}</span></span>
                                                     <span className="text-sm font-bold text-emerald-400 bg-emerald-900/30 px-3 py-1 rounded-full border border-emerald-800">
                                                         步数节约加成 (+{gameState.bonus})
                                                     </span>
