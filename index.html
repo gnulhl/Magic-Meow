@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>喵星魔法盲盒 - 百猫大乱斗 (硬核解谜版)</title>
+    <title>喵星魔法盲盒 - 百猫大乱斗 (休闲策略版)</title>
     
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -237,100 +237,10 @@
         };
 
         const REFUND_RATES = { 'N': 10, 'R': 15, 'SR': 25, 'SSR': 35, 'UR': 50 };
-        const GRID_COLORS = ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'];
+        
+        // 核心改动：精简至 4 种颜色 (红、蓝、黄、绿)
+        const GRID_COLORS = ['#EF4444', '#3B82F6', '#F59E0B', '#10B981'];
         const EMPTY_CELL = -1;
-
-        // --- 核心 AI 最优步数计算算法 (Beam Search) ---
-        const solveFloodFill = (initialBoard, startR, startC, targetCells) => {
-            const BOARD_SIZE = initialBoard.length;
-            const GRID_COLORS_COUNT = 6;
-            
-            const getConnectedSize = (board, sr, sc) => {
-                let color = board[sr][sc];
-                let q = [[sr, sc]];
-                let visited = new Set([`${sr},${sc}`]);
-                let count = 1;
-                while (q.length > 0) {
-                    let [r, c] = q.shift();
-                    const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-                    for (let [dr, dc] of dirs) {
-                        let nr = r + dr, nc = c + dc;
-                        if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
-                            if (board[nr][nc] === color && !visited.has(`${nr},${nc}`)) {
-                                visited.add(`${nr},${nc}`);
-                                q.push([nr, nc]);
-                                count++;
-                            }
-                        }
-                    }
-                }
-                return count;
-            };
-
-            const initialSize = getConnectedSize(initialBoard, startR, startC);
-            if (initialSize === targetCells) return 0;
-
-            const BEAM_WIDTH = 30; // 宽度适中，保证速度和准确度
-            let queue = [{ board: initialBoard.map(r => [...r]), steps: 0, score: initialSize }];
-
-            let iterations = 0;
-            while (queue.length > 0 && iterations < 35) { // 限制最大深度防卡死
-                iterations++;
-                let nextQueue = [];
-                let seen = new Set();
-
-                for (let state of queue) {
-                    let startColor = state.board[startR][startC];
-
-                    for (let nextColor = 0; nextColor < GRID_COLORS_COUNT; nextColor++) {
-                        if (nextColor === startColor) continue;
-
-                        let nextBoard = state.board.map(r => [...r]);
-                        let q = [[startR, startC]];
-                        let visitedFill = new Set([`${startR},${startC}`]);
-                        nextBoard[startR][startC] = nextColor;
-                        let changed = false;
-
-                        while (q.length > 0) {
-                            let [r, c] = q.shift();
-                            const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-                            for (let [dr, dc] of dirs) {
-                                let nr = r + dr, nc = c + dc;
-                                if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
-                                    if (state.board[nr][nc] === startColor && !visitedFill.has(`${nr},${nc}`)) {
-                                        visitedFill.add(`${nr},${nc}`);
-                                        nextBoard[nr][nc] = nextColor;
-                                        q.push([nr, nc]);
-                                        changed = true;
-                                    }
-                                }
-                            }
-                        }
-
-                        if (!changed) continue;
-
-                        let newSize = getConnectedSize(nextBoard, startR, startC);
-                        if (newSize === targetCells) {
-                            return state.steps + 1; // 找到最优解
-                        }
-
-                        let hash = nextBoard.map(r => r.join(',')).join(';');
-                        if (seen.has(hash)) continue;
-                        seen.add(hash);
-
-                        nextQueue.push({
-                            board: nextBoard,
-                            steps: state.steps + 1,
-                            score: newSize
-                        });
-                    }
-                }
-
-                nextQueue.sort((a, b) => b.score - a.score); // 贪心：连通块越大的优先级越高
-                queue = nextQueue.slice(0, BEAM_WIDTH);
-            }
-            return 12; // 算法后备极值
-        };
 
         // --- 核心模块化 SVG 渲染引擎 ---
         const ComplexCatSvg = ({ cat, className }) => {
@@ -983,12 +893,11 @@
             const [collection, setCollection] = useState([]); 
             
             const BOARD_SIZE = 12;
-            const [maxMoves, setMaxMoves] = useState(18);
+            const MAX_MOVES = 20; 
             const [board, setBoard] = useState([]);
             const [moves, setMoves] = useState(0);
-            const [gameState, setGameState] = useState({ status: 'playing', reward: 0, bonus: 0, baseReward: 0 }); 
+            const [gameState, setGameState] = useState({ status: 'playing', reward: 0, bonus: 0 }); 
             const [startPos, setStartPos] = useState([0,0]); 
-            const [optSteps, setOptSteps] = useState(0);
             
             const [summonState, setSummonState] = useState('idle'); 
             const [summonResult, setSummonResult] = useState(null); 
@@ -1037,15 +946,10 @@
                     if (newBoard[sR][sC] !== EMPTY_CELL) break;
                 }
 
-                // 启动 AI 最短步数测算器
-                const minSteps = solveFloodFill(newBoard, sR, sC, TARGET_CELLS);
-                setOptSteps(minSteps);
-                setMaxMoves(Math.max(8, minSteps + 8)); // 给玩家8步的宽容度
-
                 setStartPos([sR, sC]);
                 setBoard(newBoard);
                 setMoves(0);
-                setGameState({ status: 'playing', reward: 0, bonus: 0, baseReward: minSteps });
+                setGameState({ status: 'playing', reward: 0, bonus: 0 });
             }, []);
 
             useEffect(() => { generateIrregularBoard(); }, [generateIrregularBoard]);
@@ -1091,18 +995,19 @@
                 }
 
                 if (isWin) {
-                    const bonus = (maxMoves - newMoves) * 3;
-                    const totalReward = optSteps + bonus;
-                    setGameState({ status: 'won', reward: totalReward, bonus: bonus, baseReward: optSteps });
+                    const bonus = (MAX_MOVES - newMoves) * 3;
+                    const totalReward = 10 + bonus;
+                    setGameState({ status: 'won', reward: totalReward, bonus: bonus });
                     setYarn(prev => prev + totalReward);
-                } else if (newMoves >= maxMoves) {
-                    setGameState({ status: 'lost', reward: 0, bonus: 0, baseReward: optSteps });
+                } else if (newMoves >= MAX_MOVES) {
+                    setGameState({ status: 'lost', reward: 0, bonus: 0 });
                     setYarn(prev => Math.max(0, prev - 5));
                 }
             };
 
             const handleGiveUp = () => {
-                if (gameState.status === 'playing' && moves > 0) {
+                // 如果在游戏途中点击放弃，或者刚开局就点击刷新，都要扣除 5 货币
+                if (gameState.status === 'playing') {
                     setYarn(prev => Math.max(0, prev - 5));
                 }
                 generateIrregularBoard();
@@ -1171,12 +1076,12 @@
                             <div className="w-full flex justify-between items-center mb-4">
                                 <div>
                                     <h2 className="text-lg font-black text-white">收服魔法线团</h2>
-                                    <p className="text-xs text-slate-400 mt-1">理论最少需要 <span className="text-indigo-400 font-bold">{optSteps}</span> 步，你行吗？</p>
+                                    <p className="text-xs text-slate-400 mt-1">在 <span className="text-indigo-400 font-bold">{MAX_MOVES}</span> 步内统一颜色！剩余步数越多奖励越高。</p>
                                 </div>
                                 <div className="text-right bg-slate-900 px-4 py-2 rounded-2xl border border-slate-700">
                                     <span className="text-xs font-bold text-slate-500 block mb-1">剩余步数 / 限制</span>
-                                    <div className={`text-3xl font-black leading-none ${maxMoves - moves <= 3 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
-                                        {maxMoves - moves} <span className="text-lg text-slate-600">/ {maxMoves}</span>
+                                    <div className={`text-3xl font-black leading-none ${MAX_MOVES - moves <= 3 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
+                                        {MAX_MOVES - moves} <span className="text-lg text-slate-600">/ {MAX_MOVES}</span>
                                     </div>
                                 </div>
                             </div>
@@ -1213,7 +1118,7 @@
                                                 <div className="text-5xl mb-4 animate-bounce">✨</div>
                                                 <h3 className="text-2xl font-black text-indigo-400 mb-2">魔法收服成功！</h3>
                                                 <div className="flex flex-col items-center gap-1 mb-4">
-                                                    <span className="text-sm font-bold text-slate-300">通关基础奖励 <span className="text-white">+{gameState.baseReward || optSteps}</span></span>
+                                                    <span className="text-sm font-bold text-slate-300">通关基础奖励 <span className="text-white">+10</span></span>
                                                     <span className="text-sm font-bold text-emerald-400 bg-emerald-900/30 px-3 py-1 rounded-full border border-emerald-800">
                                                         步数节约加成 (+{gameState.bonus})
                                                     </span>
@@ -1257,7 +1162,7 @@
                                 onClick={handleGiveUp} 
                                 className="text-slate-500 hover:text-red-400 text-sm font-bold flex items-center gap-1 mt-6 bg-slate-900 hover:bg-red-900/20 px-4 py-2 rounded-xl transition-colors border border-transparent hover:border-red-900/50"
                             >
-                                <RefreshCwIcon className="w-4 h-4" /> 实在解不开，放弃重来 {moves > 0 ? '(-5 🧶)' : ''}
+                                <RefreshCwIcon className="w-4 h-4" /> 刷新关卡 / 放弃 (-5 🧶)
                             </button>
                         </div>
 
