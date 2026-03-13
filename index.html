@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>喵星魔法盲盒 - 代码存档版</title>
+    <title>喵星魔法盲盒 - 策略羁绊终极版</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -53,7 +53,7 @@
         const { useState, useEffect, useCallback, useRef } = React;
 
         // 全局常量配置
-        const GRID_COLORS = ['#EF4444', '#3B82F6', '#F59E0B', '#10B981']; // 4种颜色：红蓝黄绿
+        const GRID_COLORS = ['#EF4444', '#3B82F6', '#F59E0B', '#10B981']; // 红蓝黄绿
         const EMPTY_CELL = -1;
         const REFUND_RATES = { 'N': 10, 'R': 15, 'SR': 25, 'SSR': 35, 'UR': 50 };
 
@@ -67,9 +67,9 @@
         const SaveIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>;
         const CheckIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12"></polyline></svg>;
 
-        // --- 全新技能库定义 (百猫图鉴) ---
+        // --- 全新完整技能库定义 (百猫图鉴 - 100只) ---
         const CAT_DICTIONARY = [
-        // --- N级 (40%) ---
+        // --- N级 (40%) 1-40 ---
         { id: 1, name: '吃瓜橘猫', rarity: 'N', color: '#FDBA74', belly: '#FFF7ED', eyes: 'happy', mouth: 'blep', tail: 'normal', desc: '看起来很好吃，实际上很能吃。', ability: { type: 'bonus_yarn_win', value: 3, desc: '【吃货福利】通关额外找到 3 🧶' } },
         { id: 2, name: '高冷黑猫', rarity: 'N', color: '#1F2937', belly: '#374151', eyes: 'cool', mouth: 'smile', tail: 'normal', desc: '总是用鄙视的眼神看着你。', ability: { type: 'refund_move_chance', value: 0.1, desc: '【敏捷步伐】10%概率行动不耗步数' } },
         { id: 3, name: '三花大板', rarity: 'N', color: '#FFFFFF', belly: '#FFFFFF', spots: ['#F97316', '#1F2937'], eyes: 'normal', mouth: 'open', tail: 'fluffy', desc: '经典的配色，经典的脾气。', ability: { type: 'unify_color', value: 3, desc: '【三花聚顶】开局同化 3 个方块' } },
@@ -80,7 +80,7 @@
         { id: 8, name: '摸鱼上班族', rarity: 'N', color: '#FCD34D', belly: '#FEF3C7', eyes: 'dead-fish', mouth: 'smile', held: 'coffee', desc: '靠着一杯特浓黑咖啡续命的打工人。', ability: { type: 'free_moves', value: 2, desc: '【带薪拉屎】前 2 步偷偷行动不计入消耗' } },
         { id: 9, name: '白化仙女猫', rarity: 'N', color: '#FFFFFF', belly: '#FFFFFF', eyes: 'star', mouth: 'smile', tail: 'normal', desc: '雪白纯洁，像个小仙女。', ability: { type: 'bonus_yarn_win', value: 4, desc: '【仙女赐福】通关额外获得 4 🧶' } },
         { id: 10, name: '奶牛斑纹喵', rarity: 'N', color: '#FFFFFF', belly: '#FFFFFF', spots: ['#111827', '#111827'], eyes: 'googly', mouth: 'open', tail: 'normal', desc: '神经大条，经常平地摔。', ability: { type: 'steal_yarn', value: 2, desc: '【平地摔】不小心碰掉了你 2 🧶' } },
-        { id: 11, name: '无毛外星人', rarity: 'N', color: '#FBCFE8', belly: '#FDF2F8', eyes: 'cool', mouth: 'smile', tail: 'normal', desc: '没有毛，摸起来像热乎乎的桃子。', ability: { type: 'color_wipe', value: 1, desc: '【外星科技】有极小概率抹除一种颜色' } },
+        { id: 11, name: '无毛外星人', rarity: 'N', color: '#FBCFE8', belly: '#FDF2F8', eyes: 'cool', mouth: 'smile', tail: 'normal', desc: '没有毛，摸起来像热乎乎的桃子。', ability: { type: 'color_wipe', value: 1, desc: '【外星科技】抹除最边缘的 1 种颜色' } },
         { id: 12, name: '暹罗挖煤工', rarity: 'N', color: '#E5E7EB', belly: '#E5E7EB', spots: ['#374151', '#374151'], eyes: 'normal', mouth: 'blep', tail: 'normal', desc: '脸黑得像刚从煤矿里出来一样。', ability: { type: 'bonus_yarn_win', value: 5, desc: '【挖矿辛劳】通关额外挖到 5 🧶' } },
         { id: 13, name: '蓝胖子', rarity: 'N', color: '#94A3B8', belly: '#CBD5E1', eyes: 'happy', mouth: 'smile', tail: 'fluffy', desc: '非常敦实，抱起来手感极佳。', ability: { type: 'prevent_loss_penalty', value: true, desc: '【肉盾抗伤】失败免除扣费惩罚' } },
         { id: 14, name: '偷吃炸毛喵', rarity: 'N', color: '#78350F', belly: '#92400E', eyes: 'googly', mouth: 'fangs', tail: 'fluffy', desc: '偷吃小鱼干被抓包时的应激状态。', ability: { type: 'steal_yarn', value: 3, desc: '【偷吃惯犯】开局偷吃了你 3 🧶' } },
@@ -111,7 +111,7 @@
         { id: 39, name: '快递盒质检员', rarity: 'N', color: '#FDE047', belly: '#FEF08A', eyes: 'normal', headgear: 'toast', bodygear: 'cardboard-box', desc: '严格检查每一个来到家里的硬纸板箱。', ability: { type: 'bonus_yarn_win', value: 6, desc: '【开箱有喜】通关额外获得 6 🧶' } },
         { id: 40, name: '仙人掌朋友', rarity: 'N', color: '#166534', belly: '#22C55E', eyes: 'happy', tail: 'twin', desc: '和阳台上的仙人掌结下了深厚的友谊。', ability: { type: 'unify_color', value: 5, desc: '【植物沟通】开局同化 5 个方块' } },
 
-        // --- R级 (30%) ---
+        // --- R级 (30%) 41-70 ---
         { id: 41, name: '见习魔法师', rarity: 'R', color: '#E5E7EB', belly: '#FFFFFF', eyes: 'star', headgear: 'wizard-hat', held: 'wand', desc: '刚刚学会把水变成牛奶。', ability: { type: 'unify_color', value: 8, desc: '【初级同化术】开局同化 8 个方块' } },
         { id: 42, name: '暗影忍者喵', rarity: 'R', color: '#111827', belly: '#1F2937', eyes: 'angry', headgear: 'ninja-headband', held: 'kunai', desc: '无声无息偷走你的夜宵。', ability: { type: 'steal_yarn', value: 5, desc: '【暗影窃取】神不知鬼不觉顺走 5 🧶' } },
         { id: 43, name: '荒野探险家', rarity: 'R', color: '#D97706', belly: '#FDE68A', headgear: 'safari-hat', bodygear: 'backpack', desc: '寻找“无限猫粮罐头”。', ability: { type: 'bonus_yarn_win', value: 10, desc: '【探险发现】通关额外获得 10 🧶' } },
@@ -125,7 +125,7 @@
         { id: 51, name: '天才小画家', rarity: 'R', color: '#FCD34D', belly: '#FEF3C7', headgear: 'chef-hat', held: 'paintbrush', desc: '用尾巴在墙上留下不可磨灭的印记。', ability: { type: 'unify_color', value: 9, desc: '【随意涂鸦】开局帮你染好 9 个方块' } },
         { id: 52, name: '怪盗罗宾喵', rarity: 'R', color: '#312E81', belly: '#4338CA', eyes: 'monocle', headgear: 'top-hat', held: 'cards', desc: '预告信：今晚偷走你最爱的抱枕。', ability: { type: 'steal_yarn', value: 6, desc: '【华丽盗窃】开局顺走你 6 🧶' } },
         { id: 53, name: '扑克牌手', rarity: 'R', color: '#FFFFFF', belly: '#FFFFFF', spots: ['#EF4444', '#111827'], headgear: 'top-hat', held: 'cards', desc: '永远猜透它手里有没有王炸。', ability: { type: 'bonus_yarn_win', value: 10, desc: '【出老千】通关额外赢取 10 🧶' } },
-        { id: 54, name: '飞行员喵', rarity: 'R', color: '#D6A87C', belly: '#E6C8A6', eyes: 'goggles-up', headgear: 'safari-hat', desc: '梦想开着纸箱飞向天空。', ability: { type: 'color_wipe', value: 1, desc: '【高空投弹】开局强行消灭盘面 1 种边缘颜色' } },
+        { id: 54, name: '飞行员喵', rarity: 'R', color: '#D6A87C', belly: '#E6C8A6', eyes: 'goggles-up', headgear: 'safari-hat', desc: '梦想开着纸箱飞向天空。', ability: { type: 'color_wipe', value: 1, desc: '【高空投弹】开局强行消灭盘面 1 种颜色' } },
         { id: 55, name: '温泉店长', rarity: 'R', color: '#FCA5A5', belly: '#FECACA', headgear: 'headband', desc: '泡在温水里就不想出来的慵懒店长。', ability: { type: 'prevent_loss_penalty', value: true, desc: '【泡汤放松】失败免除惩罚' } },
         { id: 56, name: '炼金学徒', rarity: 'R', color: '#A16207', belly: '#CA8A04', eyes: 'googly', headgear: 'goggles-up', held: 'potion', desc: '经常把自己的尾巴炸开花。', ability: { type: 'scramble_board', value: 10, desc: '【药剂爆炸】炸乱了 10 个方块！' } },
         { id: 57, name: '星空守望者', rarity: 'R', color: '#1E1B4B', belly: '#312E81', eyes: 'star', headgear: 'wizard-hat', desc: '每天晚上数天上有几条银河鱼。', ability: { type: 'bonus_yarn_win', value: 8, desc: '【许愿流星】通关额外获得 8 🧶' } },
@@ -143,7 +143,7 @@
         { id: 69, name: '沙漠旅行商人', rarity: 'R', color: '#D97706', belly: '#F59E0B', headgear: 'safari-hat', bodygear: 'backpack', held: 'potion', desc: '用一袋猫砂可以和它换一瓶神奇药水。', ability: { type: 'bonus_yarn_win', value: 12, desc: '【奸商交易】通关额外赚取 12 🧶' } },
         { id: 70, name: '古典魔术师', rarity: 'R', color: '#000000', belly: '#FFFFFF', eyes: 'monocle', headgear: 'top-hat', held: 'wand', desc: '大变活鱼是它的拿手好戏。', ability: { type: 'scramble_board', value: 12, desc: '【大变戏法】随机打乱 12 个方块' } },
 
-        // --- SR级 (15%) ---
+        // --- SR级 (15%) 71-85 ---
         { id: 71, name: '赛博黑客', rarity: 'SR', color: '#0F172A', belly: '#1E293B', eyes: 'cyber-visor', tail: 'mecha', bodygear: 'cyber-jacket', held: 'laptop', aura: 'neon-glow', desc: '正在入侵智能喂食器的主板...', ability: { type: 'unify_color', value: 15, desc: '【系统入侵】开局强行同化 15 个方块' } },
         { id: 72, name: '神圣帕拉丁', rarity: 'SR', color: '#F3F4F6', belly: '#FFFFFF', headgear: 'knight-helm', bodygear: 'armor', held: 'holy-sword', desc: '以圣光之名，审判不交罐头的人！', ability: { type: 'prevent_loss_penalty', value: true, desc: '【圣盾庇护】失败免惩罚' } },
         { id: 73, name: '深渊小恶魔', rarity: 'SR', color: '#7F1D1D', belly: '#991B1B', eyes: 'evil', tail: 'devil', bodygear: 'bat-wings', headgear: 'horns', desc: '最喜欢半夜把桌子上的杯子推下去。', ability: { type: 'extra_loss_penalty', value: 15, desc: '【恶魔诅咒】高风险！失败额外扣除 15 🧶' } },
@@ -160,7 +160,7 @@
         { id: 84, name: '魔法药剂大宗师', rarity: 'SR', color: '#4C1D95', belly: '#7C3AED', headgear: 'wizard-hat', held: 'potion', aura: 'slime-drip', desc: '它熬制的猫薄荷浓缩液能让猫飞上天。', ability: { type: 'color_wipe', value: 1, desc: '【化学中和】中和抹除了盘面的 1 种颜色' } },
         { id: 85, name: '机动特警', rarity: 'SR', color: '#1E40AF', belly: '#3B82F6', eyes: 'cyber-visor', headgear: 'viking-helmet', held: 'beam-saber', desc: '专门逮捕半夜跑酷扰民的犯罪分子。', ability: { type: 'prevent_loss_penalty', value: true, desc: '【特警护航】保护你免受失败扣费惩罚' } },
 
-        // --- SSR级 (10%) ---
+        // --- SSR级 (10%) 86-95 ---
         { id: 86, name: '星空大星象师', rarity: 'SSR', color: '#312E81', belly: '#4338CA', eyes: 'cosmic', headgear: 'galaxy-hat', bodygear: 'star-cape', desc: '长袍里装着一整个微缩宇宙。', ability: { type: 'unify_color', value: 30, desc: '【星辰排列】神迹降临！开局同化 30 个方块！' } },
         { id: 87, name: '零号机甲巨兽', rarity: 'SSR', color: '#475569', belly: '#64748B', eyes: 'mecha-visor', headgear: 'mecha-ears', bodygear: 'mecha-suit', held: 'beam-saber', desc: '装甲厚度足以抵御任何撸猫咸猪手。', ability: { type: 'free_moves', value: 8, desc: '【绝对防御】能源充沛，前 8 步完全免单' } },
         { id: 88, name: '天狐·九尾妖瞳', rarity: 'SSR', color: '#FFFFFF', belly: '#FFFFFF', eyes: 'fox-slit', tail: 'nine-tails', headgear: 'fox-mask', aura: 'spirit-fire', desc: '活了千年的猫怪，拥有魅惑人心的力量。', ability: { type: 'bonus_yarn_win', value: 40, desc: '【狐妖魅惑】通关额外榨取 40 🧶 的天价巨款' } },
@@ -172,7 +172,7 @@
         { id: 94, name: '元素聚合体', rarity: 'SSR', color: '#A855F7', belly: '#D8B4FE', tail: 'tentacle-mass', headgear: 'halo', aura: 'rainbow-ring', desc: '掌控着水、火、土、风、以及猫砂。', ability: { type: 'color_wipe', value: 2, desc: '【元素剥夺】直接剥夺抹除 2 种颜色' } },
         { id: 95, name: '黄金巨龙神', rarity: 'SSR', color: '#B45309', belly: '#F59E0B', tail: 'dragon', bodygear: 'dragon-wings', headgear: 'pharaoh-crown', aura: 'sun-halo', desc: '睡在堆积如山的小鱼干上，守护财宝。', ability: { type: 'multiply_reward', value: 2.5, desc: '【巨龙宝库】通关最终收益暴涨 2.5 倍！' } },
 
-        // --- UR级 (5%) 全员降维打击 ---
+        // --- UR级 (5%) 全员降维打击 96-100 ---
         { id: 96, name: '混沌·克苏鲁喵', rarity: 'UR', color: '#1E1B4B', belly: '#312E81', eyes: 'multiple', mouth: 'tentacles', tail: 'tentacle-mass', headgear: 'cosmic-crown', aura: 'dark-vortex', desc: '凝视深渊，深渊会向你讨要猫条。', ability: { type: 'color_wipe', value: 3, desc: '【降维打击】无理！直接强行抹除 3 种颜色！' } },
         { id: 97, name: '薛定谔的观测者', rarity: 'UR', color: '#38BDF8', belly: '#BAE6FD', eyes: 'cyber-visor', tail: 'twin', aura: 'quantum-glitch', desc: '同时存在于开盒与未开盒的状态，概率的化身。', ability: { type: 'refund_move_chance', value: 0.60, desc: '【量子叠加态】作弊！高达 60% 概率行动不耗步数' } },
         { id: 98, name: '真理·创世神喵', rarity: 'UR', color: '#F8FAFC', belly: '#FFFFFF', eyes: 'cosmic', headgear: 'halo', held: 'paintbrush', aura: 'sacred-geometry', tail: 'fluffy', desc: '用手中的画笔，绘制出了世界上的100只猫咪。', ability: { type: 'multiply_reward', value: 3, desc: '【创世干预】神恩浩荡：通关总收益夸张地 × 3 倍！' } },
@@ -180,7 +180,7 @@
         { id: 100, name: '概念纠缠·矩阵之眼', rarity: 'UR', color: '#064E3B', belly: '#047857', eyes: 'monocle', headgear: 'cyber-visor', aura: 'matrix-rain', desc: '看透了世界是一段代码，于是它黑进了自动喂食器。', ability: { type: 'unify_color', value: 60, desc: '【修改底层代码】霸权！开局瞬间强行同化 60 个方块！' } },
         ];
 
-        // --- 复杂的猫咪渲染组件 (原封不动保留) ---
+        // --- SVG 组件提取 ---
         const ComplexCatSvg = ({ cat, className }) => {
             const bc = cat.color;
             const belly = cat.belly;
@@ -843,7 +843,6 @@
 
             const handleCopyCode = () => {
                 const code = generateSaveCode();
-                // 兼容浏览器的复制方法
                 const el = document.createElement('textarea');
                 el.value = code;
                 document.body.appendChild(el);
@@ -1211,8 +1210,8 @@
                                 {/* 羁绊陪伴UI (融入游戏面板内) */}
                                 {companion && gameState.status === 'playing' && (
                                     <div className={`w-full bg-slate-900/80 p-3 rounded-2xl mb-4 flex items-center gap-3 border-2 transition-colors duration-300 shadow-inner ${triggerAnim ? 'border-emerald-500/50' : 'border-indigo-500/30'}`}>
-                                        <div className="w-12 h-12 bg-slate-800 rounded-full flex-shrink-0 overflow-hidden shadow-md border border-slate-700">
-                                            <ComplexCatSvg cat={companion} className="scale-125 translate-y-2" />
+                                        <div className="w-12 h-12 bg-slate-800 rounded-full flex-shrink-0 overflow-hidden shadow-md border border-slate-700 relative">
+                                            <ComplexCatSvg cat={companion} className="scale-125 translate-y-2 absolute inset-0" />
                                         </div>
                                         <div className="flex flex-col flex-1">
                                             <div className="flex justify-between items-baseline mb-0.5">
@@ -1220,7 +1219,7 @@
                                                 <span className="text-[10px] text-slate-500 font-bold bg-slate-800 px-2 py-0.5 rounded-full">当前羁绊</span>
                                             </div>
                                             <p key={triggerAnim} className={`text-[11px] sm:text-xs font-bold leading-tight ${triggerAnim ? 'text-emerald-400 animate-pulse' : 'text-slate-300'}`}>
-                                                {companion.ability.desc}
+                                                {companion.ability?.desc || '陪伴中...'}
                                             </p>
                                         </div>
                                     </div>
@@ -1384,15 +1383,15 @@
                                             return (
                                                 <div 
                                                     key={cat.id} 
-                                                    className={`relative aspect-square rounded-xl flex flex-col items-center justify-center transition-all duration-300 ${isUnlocked ? 'bg-slate-800 hover:bg-indigo-900/50 hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-500/30 cursor-pointer border border-slate-600 group' : 'bg-slate-900/50 opacity-20 border border-slate-800'}`}
+                                                    className={`relative aspect-square rounded-xl flex flex-col items-center justify-center transition-all duration-300 ${isUnlocked ? 'bg-slate-800 hover:bg-indigo-900/50 hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-500/30 cursor-pointer border border-slate-600 group overflow-hidden' : 'bg-slate-900/50 opacity-20 border border-slate-800 overflow-hidden'}`}
                                                     onClick={() => isUnlocked && setSummonResult({ cat, isNew: false, previewOnly: true, forceShow: true })}
                                                     title={isUnlocked ? cat.name : `No.${cat.id} 未知生物`}
                                                 >
-                                                    <div className="w-[80%] h-[80%] group-hover:scale-110 transition-transform duration-300">
+                                                    <div className="w-[80%] h-[80%] group-hover:scale-110 transition-transform duration-300 relative">
                                                         {isUnlocked ? (
-                                                            <ComplexCatSvg cat={cat} />
+                                                            <ComplexCatSvg cat={cat} className="absolute inset-0" />
                                                         ) : (
-                                                            <ComplexCatSvg cat={cat} className="brightness-0 contrast-200 grayscale drop-shadow-none pointer-events-none" />
+                                                            <ComplexCatSvg cat={cat} className="absolute inset-0 brightness-0 contrast-200 grayscale drop-shadow-none pointer-events-none" />
                                                         )}
                                                     </div>
                                                     {isUnlocked && (
@@ -1480,7 +1479,7 @@
                                                 {(summonResult.cat.rarity === 'SSR' || summonResult.cat.rarity === 'UR') && (
                                                     <div className="absolute inset-0 bg-yellow-400/10 rounded-full blur-3xl animate-pulse"></div>
                                                 )}
-                                                <ComplexCatSvg cat={summonResult.cat} className="animate-float-large" />
+                                                <ComplexCatSvg cat={summonResult.cat} className="animate-float-large absolute inset-0" />
                                             </div>
                                         </div>
 
@@ -1492,7 +1491,7 @@
                                         
                                         <div className="bg-indigo-900/40 border border-indigo-500/30 rounded-xl p-3 mb-4 inline-block max-w-full">
                                             <p className="text-sm font-bold text-indigo-300 mb-1 flex items-center justify-center gap-1"><ZapIcon className="w-4 h-4"/> 专属能力</p>
-                                            <p className="text-xs sm:text-sm font-medium text-indigo-100">{summonResult.cat.ability.desc}</p>
+                                            <p className="text-xs sm:text-sm font-medium text-indigo-100">{summonResult.cat.ability?.desc || '未觉醒能力'}</p>
                                         </div>
 
                                         <p className="text-sm text-slate-400 bg-slate-900/60 p-4 rounded-xl mb-8 border border-slate-700 leading-relaxed italic">
