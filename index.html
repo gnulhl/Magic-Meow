@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>喵星魔法盲盒 - 羁绊机制大修版</title>
+    <title>喵星魔法盲盒 - 资本博弈版</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -22,9 +22,11 @@
         @keyframes spin-slow-reverse { 100% { transform: rotate(-360deg); } }
         @keyframes glitch { 0% { transform: translate(-2px, 2px) skewX(2deg); filter: hue-rotate(0deg); } 20% { transform: translate(2px, -2px) skewX(-2deg); } 40% { transform: translate(-2px, -2px) skewX(2deg); filter: hue-rotate(90deg); } 60% { transform: translate(2px, 2px) skewX(-2deg); } 80% { transform: translate(-2px, 2px) skewX(2deg); filter: hue-rotate(180deg); } 100% { transform: translate(2px, -2px) skewX(-2deg); } }
         @keyframes matrix-fall { 0% { transform: translateY(-20px); opacity: 0.2; } 50% { opacity: 1; } 100% { transform: translateY(20px); opacity: 0.2; } }
+        @keyframes pop-in-right { 0% { transform: translateX(100%); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes ability-pulse { 0%, 100% { box-shadow: 0 0 0 0px rgba(255, 255, 255, 0.9); border-color: white; transform: scale(1); z-index: 10;} 50% { box-shadow: 0 0 0 5px rgba(255, 255, 255, 0); border-color: rgba(255,255,255,0.5); transform: scale(1.05); z-index: 10;} }
         
+        .animate-pop-in-right { animation: pop-in-right 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         .animate-matrix-fall { animation: matrix-fall 2s linear infinite; }
         .animate-shimmer { animation: shimmer 2.5s infinite; }
         .animate-float-large { animation: float-large 3s ease-in-out infinite; }
@@ -52,7 +54,8 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useRef } = React;
 
-        const GRID_COLORS = ['#EF4444', '#3B82F6', '#F59E0B', '#10B981']; 
+        // 全局常量配置
+        const GRID_COLORS = ['#EF4444', '#3B82F6', '#F59E0B', '#10B981']; // 红蓝黄绿
         const EMPTY_CELL = -1;
         const REFUND_RATES = { 'N': 10, 'R': 15, 'SR': 25, 'SSR': 35, 'UR': 50 };
 
@@ -64,6 +67,7 @@
             'UR': 'text-rose-500 bg-rose-50 border-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.6)]',
         };
 
+        // --- SVG 图标组件 ---
         const PackageIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>;
         const GiftIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>;
         const RefreshCwIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>;
@@ -74,8 +78,7 @@
         const CheckIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12"></polyline></svg>;
         const CloseIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
 
-        // --- 全新技能库定义 (百猫大乱斗 100只) ---
-        // 新机制补充: purify_on_move, chaos_on_move, x_blast, invest_yarn, lucky_win
+        // --- 全新技能库定义 (百猫图鉴 - 100只) 技能大换血 ---
         const CAT_DICTIONARY = [
         // --- N级 (40%) 1-40 ---
         { id: 1, name: '吃瓜橘猫', rarity: 'N', color: '#FDBA74', belly: '#FFF7ED', eyes: 'happy', mouth: 'blep', tail: 'normal', desc: '看起来很好吃，实际上很能吃。', ability: { type: 'bonus_yarn_win', value: 3, desc: '【吃货福利】通关额外找到 3 🧶' } },
@@ -84,33 +87,33 @@
         { id: 4, name: '纸箱潜伏者', rarity: 'N', color: '#D1D5DB', belly: '#F3F4F6', eyes: 'angry', mouth: 'ninja-muffled', tail: 'normal', bodygear: 'cardboard-box', desc: '只要钻进纸箱，它就觉得没人能看到它。', ability: { type: 'prevent_loss_penalty', value: true, desc: '【纸箱庇护】如果失败，免除扣除 5 🧶 的惩罚' } },
         { id: 5, name: '白手套绅士', rarity: 'N', color: '#111827', belly: '#FFFFFF', paws: '#FFFFFF', eyes: 'normal', mouth: 'smile', tail: 'normal', desc: '穿着优雅的白手套，像个小绅士。', ability: { type: 'unify_color', value: 4, desc: '【优雅整理】开局自动帮你同化 4 个方块' } },
         { id: 6, name: '瞌睡布偶喵', rarity: 'N', color: '#F3F4F6', belly: '#FFFFFF', eyes: 'happy', mouth: 'blep', tail: 'fluffy', desc: '不管在哪里都能秒睡的毛茸茸生物。', ability: { type: 'free_moves', value: 1, desc: '【时间放慢】它的呼噜声让你的第1步不消耗步数' } },
-        { id: 7, name: '纸袋套头喵', rarity: 'N', color: '#9CA3AF', belly: '#D1D5DB', eyes: 'eyes-only', headgear: 'paper-bag', tail: 'normal', desc: '不知道为什么，戴着纸袋让它很有安全感。', ability: { type: 'scramble_board', value: 2, desc: '【看不见路】瞎走打乱了开局 2 个方块' } },
+        { id: 7, name: '纸袋套头喵', rarity: 'N', color: '#9CA3AF', belly: '#D1D5DB', eyes: 'eyes-only', headgear: 'paper-bag', tail: 'normal', desc: '不知道为什么，戴着纸袋让它很有安全感。', ability: { type: 'convert_minority', value: 1, desc: '【阶级融合】开局将数量最少的颜色统一转换为数量最多的颜色！' } }, // 新技能
         { id: 8, name: '摸鱼上班族', rarity: 'N', color: '#FCD34D', belly: '#FEF3C7', eyes: 'dead-fish', mouth: 'smile', held: 'coffee', desc: '靠着一杯特浓黑咖啡续命的打工人。', ability: { type: 'free_moves', value: 2, desc: '【带薪拉屎】前 2 步偷偷行动不计入消耗' } },
         { id: 9, name: '白化仙女猫', rarity: 'N', color: '#FFFFFF', belly: '#FFFFFF', eyes: 'star', mouth: 'smile', tail: 'normal', desc: '雪白纯洁，像个小仙女。', ability: { type: 'bonus_yarn_win', value: 4, desc: '【仙女赐福】通关额外获得 4 🧶' } },
         { id: 10, name: '奶牛斑纹喵', rarity: 'N', color: '#FFFFFF', belly: '#FFFFFF', spots: ['#111827', '#111827'], eyes: 'googly', mouth: 'open', tail: 'normal', desc: '神经大条，经常平地摔。', ability: { type: 'steal_yarn', value: 2, desc: '【平地摔】开局不小心碰掉了你 2 🧶' } },
-        { id: 11, name: '无毛外星人', rarity: 'N', color: '#FBCFE8', belly: '#FDF2F8', eyes: 'cool', mouth: 'smile', tail: 'normal', desc: '没有毛，摸起来像热乎乎的桃子。', ability: { type: 'color_swap', value: 1, desc: '【外星科技】乱调频道，开局置换盘面上两种颜色' } },
+        { id: 11, name: '无毛外星人', rarity: 'N', color: '#FBCFE8', belly: '#FDF2F8', eyes: 'cool', mouth: 'smile', tail: 'normal', desc: '没有毛，摸起来像热乎乎的桃子。', ability: { type: 'color_wipe', value: 1, desc: '【外星科技】降维清除盘面上的 1 种颜色' } },
         { id: 12, name: '暹罗挖煤工', rarity: 'N', color: '#E5E7EB', belly: '#E5E7EB', spots: ['#374151', '#374151'], eyes: 'normal', mouth: 'blep', tail: 'normal', desc: '脸黑得像刚从煤矿里出来一样。', ability: { type: 'purify_on_move', value: 1, desc: '【辛勤挖矿】每次行动自动帮你挖掉(同化) 1 个方块' } },
         { id: 13, name: '蓝胖子', rarity: 'N', color: '#94A3B8', belly: '#CBD5E1', eyes: 'happy', mouth: 'smile', tail: 'fluffy', desc: '非常敦实，抱起来手感极佳。', ability: { type: 'prevent_loss_penalty', value: true, desc: '【肉盾抗伤】失败免除扣费惩罚' } },
         { id: 14, name: '偷吃炸毛喵', rarity: 'N', color: '#78350F', belly: '#92400E', eyes: 'googly', mouth: 'fangs', tail: 'fluffy', desc: '偷吃小鱼干被抓包时的应激状态。', ability: { type: 'steal_yarn', value: 3, desc: '【偷吃惯犯】开局偷吃了你 3 🧶' } },
         { id: 15, name: '头顶胖次喵', rarity: 'N', color: '#D6D3D1', belly: '#E7E5E4', eyes: 'dead-fish', headgear: 'magical-ribbon', tail: 'normal', desc: '不要问它头上的蝴蝶结是从哪来的。', ability: { type: 'unify_color', value: 4, desc: '【玄学好运】开局同化 4 个方块' } },
         { id: 16, name: '干饭王', rarity: 'N', color: '#FDBA74', belly: '#FFFFFF', eyes: 'star', mouth: 'open', held: 'spatula', tail: 'normal', desc: '听到开罐头的声音会瞬间闪现。', ability: { type: 'bonus_yarn_win', value: 5, desc: '【光盘行动】通关额外获得 5 🧶' } },
-        { id: 17, name: '社恐角落喵', rarity: 'N', color: '#4B5563', belly: '#6B7280', eyes: 'ghost-eyes', mouth: 'ninja-muffled', tail: 'normal', desc: '只想躲在阴暗的角落里发霉。', ability: { type: 'free_moves', value: -1, desc: '【气氛压抑】这也会扣步数？不管，总之亏了1步' } },
+        { id: 17, name: '社恐角落喵', rarity: 'N', color: '#4B5563', belly: '#6B7280', eyes: 'ghost-eyes', mouth: 'ninja-muffled', tail: 'normal', desc: '只想躲在阴暗的角落里发霉。', ability: { type: 'bankrupt_recovery', value: 50, desc: '【低保救济】若通关时你穷于 50 🧶，强行给你发低保补到 50 🧶' } }, // 新技能
         { id: 18, name: '暗中观察喵', rarity: 'N', color: '#000000', belly: '#111827', eyes: 'red-glow', mouth: 'smile', tail: 'twin', desc: '在漆黑的房间里只有两只眼睛在发光。', ability: { type: 'unify_color', value: 5, desc: '【目光锁定】开局帮你同化 5 个方块' } },
-        { id: 19, name: '草丛伪装者', rarity: 'N', color: '#A3E635', belly: '#BEF264', eyes: 'normal', mouth: 'blep', headgear: 'flower-crown', tail: 'normal', desc: '在草地里睡了一下午，身上沾满了草屑。', ability: { type: 'chaos_on_move', value: 1, desc: '【草屑掉落】每次行动都会掉落草屑，弄乱 1 个方块' } },
+        { id: 19, name: '草丛伪装者', rarity: 'N', color: '#A3E635', belly: '#BEF264', eyes: 'normal', mouth: 'blep', headgear: 'flower-crown', tail: 'normal', desc: '在草地里睡了一下午，身上沾满了草屑。', ability: { type: 'chaos_on_move', value: 1, desc: '【草屑掉落】每次行动都会掉落草屑，随机弄乱 1 个方块' } },
         { id: 20, name: '迷路小可怜', rarity: 'N', color: '#D4D4D8', belly: '#E4E4E7', eyes: 'happy', mouth: 'open', bodygear: 'backpack', tail: 'normal', desc: '背着小书包，但是不知道要去哪。', ability: { type: 'free_moves', value: 2, desc: '【带带我】因为可怜，前 2 步不耗时' } },
         { id: 21, name: '吐司面罩喵', rarity: 'N', color: '#FDE68A', belly: '#FFF7ED', eyes: 'dead-fish', headgear: 'toast', tail: 'normal', desc: '不小心把脸卡在了切片面包里。', ability: { type: 'x_blast', value: 1, desc: '【吐司十字斩】开局盲目乱撞，X型同化沿途方块' } },
         { id: 22, name: '键盘终结者', rarity: 'N', color: '#1F2937', belly: '#374151', eyes: 'happy', mouth: 'blep', held: 'laptop', desc: '只要你一打字，它就精准地趴在键盘上。', ability: { type: 'color_swap', value: 1, desc: '【乱按键盘】它触发了快捷键，置换了盘面上两种颜色！' } },
-        { id: 23, name: '鱼骨收藏家', rarity: 'N', color: '#D1D5DB', belly: '#E5E7EB', eyes: 'normal', mouth: 'smile', held: 'fish-bone', tail: 'fluffy', desc: '对舔得干干净净的鱼骨头爱不释手。', ability: { type: 'bonus_yarn_win', value: 4, desc: '【骨头换钱】通关额外获得 4 🧶' } },
+        { id: 23, name: '鱼骨收藏家', rarity: 'N', color: '#D1D5DB', belly: '#E5E7EB', eyes: 'normal', mouth: 'smile', held: 'fish-bone', tail: 'fluffy', desc: '对舔得干干净净的鱼骨头爱不释手。', ability: { type: 'interest_cap_up', value: 20, desc: '【骨头储蓄】通关时，单局最高利息上限提升 20 (总 50)！' } },
         { id: 24, name: '瑜伽大师喵', rarity: 'N', color: '#FBCFE8', belly: '#FFFFFF', eyes: 'happy', tail: 'normal', desc: '正在展示令人惊叹的流体骨骼。', ability: { type: 'unify_color', value: 6, desc: '【流体骨骼】开局渗透同化 6 个方块' } },
-        { id: 25, name: '窗台思想家', rarity: 'N', color: '#D97706', belly: '#FCD34D', eyes: 'cool', mouth: 'ninja-muffled', desc: '每天看着窗外的麻雀思考猫生。', ability: { type: 'lucky_win', value: 10, extra_value: 50, desc: '【命运数字】若刚好在第10步通关，顿悟猫生，天降 50 🧶' } },
+        { id: 25, name: '窗台思想家', rarity: 'N', color: '#D97706', belly: '#FCD34D', eyes: 'cool', mouth: 'ninja-muffled', desc: '每天看着窗外的麻雀思考猫生。', ability: { type: 'lucky_win', value: 10, extra_value: 50, desc: '【命运数字】若刚好在剩余10步通关，顿悟猫生，天降 50 🧶' } },
         { id: 26, name: '拖鞋霸占者', rarity: 'N', color: '#FFFFFF', belly: '#F3F4F6', eyes: 'angry', mouth: 'fangs', desc: '这是它的拖鞋，谁也别想拿走。', ability: { type: 'steal_yarn', value: 3, desc: '【路霸】踩了它的拖鞋，被抢走 3 🧶' } },
-        { id: 27, name: '扫地机骑士', rarity: 'N', color: '#475569', belly: '#64748B', eyes: 'cool', mouth: 'open', desc: '把扫地机器人当成了自己的专属座驾。', ability: { type: 'cross_blast', value: 1, desc: '【直线冲撞】开局冲撞，将一行一列的方块强行同化！' } },
+        { id: 27, name: '扫地机骑士', rarity: 'N', color: '#475569', belly: '#64748B', eyes: 'cool', mouth: 'open', desc: '把扫地机器人当成了自己的专属座驾。', ability: { type: 'cross_blast', value: 1, desc: '【直线冲撞】开局冲撞，将一整行一整列的方块强行同化！' } },
         { id: 28, name: '逗猫棒受害者', rarity: 'N', color: '#EF4444', belly: '#FCA5A5', eyes: 'googly', mouth: 'open', tail: 'fluffy', desc: '被逗猫棒转得晕头转向。', ability: { type: 'scramble_board', value: 3, desc: '【晕头转向】弄乱了 3 个方块' } },
         { id: 29, name: '水豚模仿者', rarity: 'N', color: '#B45309', belly: '#D97706', eyes: 'dead-fish', mouth: 'smile', tail: 'normal', desc: '情绪稳定到了令人发指的地步。', ability: { type: 'prevent_loss_penalty', value: true, desc: '【情绪稳定】失败免除扣费惩罚' } },
         { id: 30, name: '泥巴滚滚喵', rarity: 'N', color: '#713F12', belly: '#854D0E', eyes: 'happy', mouth: 'blep', tail: 'fluffy', desc: '刚在雨后的泥坑里打了三百个滚。', ability: { type: 'unify_color', value: 5, desc: '【泥巴弄脏】开局同化 5 个方块' } },
         { id: 31, name: '雪地靴喵', rarity: 'N', color: '#1E293B', belly: '#334155', paws: '#F8FAFC', eyes: 'cool', mouth: 'smile', tail: 'normal', desc: '拥有纯白色的四肢，像穿了雪地靴。', ability: { type: 'free_moves', value: 2, desc: '【保暖加成】前 2 步无阻力' } },
         { id: 32, name: '盆栽伪装喵', rarity: 'N', color: '#22C55E', belly: '#4ADE80', eyes: 'eyes-only', headgear: 'paper-bag', tail: 'normal', desc: '躲在纸袋里，头顶长出了两片草。', ability: { type: 'unify_color', value: 4, desc: '【光合作用】开局同化 4 个方块' } },
-        { id: 33, name: '冰箱守门员', rarity: 'N', color: '#E2E8F0', belly: '#F8FAFC', eyes: 'angry', mouth: 'fangs', desc: '守在冰箱前，用眼神逼迫你交出肉肉。', ability: { type: 'chaos_on_move', value: 1, desc: '【捣乱报复】因为没给肉肉，每走一步捣乱 1 个方块' } },
+        { id: 33, name: '冰箱守门员', rarity: 'N', color: '#E2E8F0', belly: '#F8FAFC', eyes: 'angry', mouth: 'fangs', desc: '守在冰箱前，用眼神逼迫你交出肉肉。', ability: { type: 'loss_interest', value: 0.05, desc: '【冷冻保本】即使游戏失败，也能获得存款 5% 的利息安慰' } },
         { id: 34, name: '纸团追逐者', rarity: 'N', color: '#FDBA74', belly: '#FFF', eyes: 'googly', tail: 'twin', desc: '对揉成团的废纸有着近乎疯狂的执念。', ability: { type: 'free_moves', value: 3, desc: '【捡到废纸】心情好，前 3 步免单' } },
         { id: 35, name: '肚皮陷阱', rarity: 'N', color: '#111827', belly: '#FCA5A5', eyes: 'evil', mouth: 'smile', tail: 'normal', desc: '露出肚皮只是个幌子，摸了就会被咬。', ability: { type: 'extra_loss_penalty', value: 5, desc: '【咬人陷阱】若失败将额外扣除 5 🧶' } },
         { id: 36, name: '激光笔猎手', rarity: 'N', color: '#6B7280', belly: '#9CA3AF', eyes: 'red-glow', tail: 'normal', desc: '发誓一定要抓到那个移动的红点。', ability: { type: 'color_wipe', value: 1, desc: '【精准打击】开局直接抹除盘面上的 1 种颜色' } },
@@ -121,20 +124,20 @@
 
         // --- R级 (30%) 41-70 ---
         { id: 41, name: '见习魔法师', rarity: 'R', color: '#E5E7EB', belly: '#FFFFFF', eyes: 'star', headgear: 'wizard-hat', held: 'wand', desc: '刚刚学会把水变成牛奶。', ability: { type: 'unify_color', value: 8, desc: '【初级同化术】开局同化 8 个方块' } },
-        { id: 42, name: '暗影忍者喵', rarity: 'R', color: '#111827', belly: '#1F2937', eyes: 'angry', headgear: 'ninja-headband', held: 'kunai', desc: '无声无息偷走你的夜宵。', ability: { type: 'steal_yarn', value: 5, desc: '【暗影窃取】神不知鬼不觉顺走 5 🧶' } },
+        { id: 42, name: '暗影忍者喵', rarity: 'R', color: '#111827', belly: '#1F2937', eyes: 'angry', headgear: 'ninja-headband', held: 'kunai', desc: '无声无息偷走你的夜宵。', ability: { type: 'interest_on_move', value: 1, desc: '【夜场敛财】每走一步，利息池增加 1 🧶，通关发放！' } }, // 新技能
         { id: 43, name: '荒野探险家', rarity: 'R', color: '#D97706', belly: '#FDE68A', headgear: 'safari-hat', bodygear: 'backpack', desc: '寻找“无限猫粮罐头”。', ability: { type: 'bonus_yarn_win', value: 10, desc: '【探险发现】通关额外获得 10 🧶' } },
         { id: 44, name: '海盗船长喵', rarity: 'R', color: '#78350F', belly: '#FEF3C7', eyes: 'eyepatch', headgear: 'pirate-hat', held: 'hook', desc: '目标是征服所有鱼塘！', ability: { type: 'bonus_yarn_win', value: 12, desc: '【海盗掠夺】通关额外掠夺 12 🧶' } },
         { id: 45, name: '春日园丁', rarity: 'R', color: '#FEF08A', belly: '#FEF9C3', headgear: 'flower-crown', held: 'watering-can', desc: '种下的猫草长得特别茂盛。', ability: { type: 'free_moves', value: 3, desc: '【生机盎然】前 3 步操作免除耗时' } },
-        { id: 46, name: '街头摇滚手', rarity: 'R', color: '#1F2937', belly: '#374151', headgear: 'mohawk', held: 'guitar', desc: '半夜在围墙上开演唱会。', ability: { type: 'bomb_3x3', value: 1, desc: '【重金属音爆】随机丢下1个九宫格音波炸弹！' } },
+        { id: 46, name: '街头摇滚手', rarity: 'R', color: '#1F2937', belly: '#374151', headgear: 'mohawk', held: 'guitar', desc: '半夜在围墙上开演唱会。', ability: { type: 'interest_step_bonus', value: 2, desc: '【音浪打赏】每剩余 1 步，额外获得 2 🧶 利息赞助' } }, // 新技能
         { id: 47, name: '实习丘比特', rarity: 'R', color: '#FFFFFF', belly: '#FDF2F8', bodygear: 'angel-wings', held: 'bow', desc: '爱心箭会让两只猫抢一个罐头。', ability: { type: 'unify_color', value: 7, desc: '【爱心连结】开局同化 7 个方块' } },
         { id: 48, name: '深夜大厨', rarity: 'R', color: '#F97316', belly: '#FFF7ED', headgear: 'chef-hat', held: 'cleaver', desc: '把大鱼切成完美的生鱼片。', ability: { type: 'purify_on_move', value: 2, desc: '【刀工精准】每次点击顺手帮你切好 2 个方块' } },
         { id: 49, name: '流浪剑客', rarity: 'R', color: '#94A3B8', belly: '#CBD5E1', headgear: 'headband', held: 'katana', desc: '心中无鱼，拔刀自然神。', ability: { type: 'x_blast', value: 2, desc: '【燕返】开局释放两道华丽的X型剑气同化方块' } },
         { id: 50, name: '皇家禁卫军', rarity: 'R', color: '#F8FAFC', belly: '#FFFFFF', headgear: 'knight-helm', held: 'holy-sword', desc: '誓死保卫猫抓板！', ability: { type: 'prevent_loss_penalty', value: true, desc: '【皇家守护】失败绝对免除扣费' } },
         { id: 51, name: '天才小画家', rarity: 'R', color: '#FCD34D', belly: '#FEF3C7', headgear: 'chef-hat', held: 'paintbrush', desc: '用尾巴在墙上留下不可磨灭的印记。', ability: { type: 'unify_color', value: 9, desc: '【随意涂鸦】开局帮你染好 9 个方块' } },
         { id: 52, name: '怪盗罗宾喵', rarity: 'R', color: '#312E81', belly: '#4338CA', eyes: 'monocle', headgear: 'top-hat', held: 'cards', desc: '预告信：今晚偷走你最爱的抱枕。', ability: { type: 'steal_yarn', value: 6, desc: '【华丽盗窃】开局顺走你 6 🧶' } },
-        { id: 53, name: '扑克牌手', rarity: 'R', color: '#FFFFFF', belly: '#FFFFFF', spots: ['#EF4444', '#111827'], headgear: 'top-hat', held: 'cards', desc: '永远猜透它手里有没有王炸。', ability: { type: 'bonus_yarn_win', value: 10, desc: '【出老千】通关额外赢取 10 🧶' } },
+        { id: 53, name: '扑克牌手', rarity: 'R', color: '#FFFFFF', belly: '#FFFFFF', spots: ['#EF4444', '#111827'], headgear: 'top-hat', held: 'cards', desc: '永远猜透它手里有没有王炸。', ability: { type: 'interest_rate_up', value: 0.10, desc: '【高额回报】通关时，存款利息率额外提升 10%！(总 20%)' } },
         { id: 54, name: '飞行员喵', rarity: 'R', color: '#D6A87C', belly: '#E6C8A6', eyes: 'goggles-up', headgear: 'safari-hat', desc: '梦想开着纸箱飞向天空。', ability: { type: 'color_wipe', value: 1, desc: '【高空投弹】开局强行消灭盘面 1 种颜色' } },
-        { id: 55, name: '温泉店长', rarity: 'R', color: '#FCA5A5', belly: '#FECACA', headgear: 'headband', desc: '泡在温水里就不想出来的慵懒店长。', ability: { type: 'prevent_loss_penalty', value: true, desc: '【泡汤放松】失败免除惩罚' } },
+        { id: 55, name: '温泉店长', rarity: 'R', color: '#FCA5A5', belly: '#FECACA', headgear: 'headband', desc: '泡在温水里就不想出来的慵懒店长。', ability: { type: 'pay_for_moves', value: 10, extra_value: 3, desc: '【氪金续命】步数耗尽时，自动花 10 🧶 买 3 步继续玩！(无视失败)' } }, // 新技能
         { id: 56, name: '炼金学徒', rarity: 'R', color: '#A16207', belly: '#CA8A04', eyes: 'googly', headgear: 'goggles-up', held: 'potion', desc: '经常把自己的尾巴炸开花。', ability: { type: 'bomb_3x3', value: 2, desc: '【药剂连环爆】随机向盘面投掷 2 个九宫格炸弹！' } },
         { id: 57, name: '星空守望者', rarity: 'R', color: '#1E1B4B', belly: '#312E81', eyes: 'star', headgear: 'wizard-hat', desc: '每天晚上数天上有几条银河鱼。', ability: { type: 'bonus_yarn_win', value: 8, desc: '【许愿流星】通关额外获得 8 🧶' } },
         { id: 58, name: '名侦探喵', rarity: 'R', color: '#78716C', belly: '#A8A29E', headgear: 'detective-hat', held: 'magnifying-glass', desc: '真相只有一个：小鱼干是你吃的！', ability: { type: 'unify_color', value: 10, desc: '【看破真相】开局找出并同化 10 个方块' } },
@@ -143,13 +146,13 @@
         { id: 61, name: '远洋水手', rarity: 'R', color: '#E0F2FE', belly: '#FFFFFF', headgear: 'sailor-hat', tail: 'fluffy', desc: '最喜欢吃刚从海里捞上来的鱼。', ability: { type: 'free_moves', value: 4, desc: '【顺风航行】前 4 步无阻力' } },
         { id: 62, name: '外卖突击手', rarity: 'R', color: '#FDE047', belly: '#FEF08A', headgear: 'detective-hat', bodygear: 'backpack', desc: '外卖箱里装的其实全都是自己的零食。', ability: { type: 'multiply_reward', value: 1.2, desc: '【准时送达】通关收益增加 20%' } },
         { id: 63, name: '健身教练喵', rarity: 'R', color: '#1F2937', belly: '#111827', headgear: 'headband', held: 'fish-bone', desc: '每天指导其他猫咪进行跑酷训练。', ability: { type: 'refund_move_chance', value: 0.25, desc: '【魔鬼体能】25%概率不消耗步数' } },
-        { id: 64, name: '塔罗占卜师', rarity: 'R', color: '#581C87', belly: '#7E22CE', headgear: 'magical-ribbon', held: 'cards', desc: '抽到了“死神”牌？这意味着你今天没有罐头。', ability: { type: 'lucky_win', value: 7, extra_value: 100, desc: '【命运数字】若刚好在第 7 步通关，天降 100 🧶' } },
+        { id: 64, name: '塔罗占卜师', rarity: 'R', color: '#581C87', belly: '#7E22CE', headgear: 'magical-ribbon', held: 'cards', desc: '抽到了“死神”牌？这意味着你今天没有罐头。', ability: { type: 'color_swap', value: 1, desc: '【命运逆转】开局强制置换盘面上两种颜色！' } },
         { id: 65, name: '星际宇航员', rarity: 'R', color: '#F8FAFC', belly: '#FFFFFF', headgear: 'diving-helmet', desc: '它坚信月亮是由巨大的奶酪做成的。', ability: { type: 'color_wipe', value: 1, desc: '【真空环境】抽空了 1 种盘面颜色' } },
         { id: 66, name: '消防救援喵', rarity: 'R', color: '#EF4444', belly: '#F87171', headgear: 'miner-helmet', held: 'watering-can', desc: '哪里有炸毛的猫，哪里就有它的救援。', ability: { type: 'prevent_loss_penalty', value: true, desc: '【紧急救援】失败绝对免除扣费' } },
         { id: 67, name: '寿司捏造者', rarity: 'R', color: '#FFFFFF', belly: '#FFFFFF', headgear: 'headband', held: 'fish-bone', desc: '用最高超的肉球手法捏出的三文鱼寿司。', ability: { type: 'unify_color', value: 8, desc: '【肉球捏捏】开局同化 8 个方块' } },
         { id: 68, name: '极地破冰者', rarity: 'R', color: '#BAE6FD', belly: '#E0F2FE', headgear: 'ice-crown', bodygear: 'backpack', desc: '在极寒的猫爬架顶端寻找传说中的冰鲜粮。', ability: { type: 'free_moves', value: 5, desc: '【破冰前行】前 5 步免消耗' } },
         { id: 69, name: '沙漠旅行商人', rarity: 'R', color: '#D97706', belly: '#F59E0B', headgear: 'safari-hat', bodygear: 'backpack', held: 'potion', desc: '用一袋猫砂可以和它换一瓶神奇药水。', ability: { type: 'invest_yarn', value: 15, desc: '【风险投资】开局强扣 15 🧶，通关则连本带利返还 45 🧶' } },
-        { id: 70, name: '古典魔术师', rarity: 'R', color: '#000000', belly: '#FFFFFF', eyes: 'monocle', headgear: 'top-hat', held: 'wand', desc: '大变活鱼是它的拿手好戏。', ability: { type: 'scramble_board', value: 12, desc: '【大变戏法】随机打乱 12 个方块' } },
+        { id: 70, name: '古典魔术师', rarity: 'R', color: '#000000', belly: '#FFFFFF', eyes: 'monocle', headgear: 'top-hat', held: 'wand', desc: '大变活鱼是它的拿手好戏。', ability: { type: 'interest_flat_bonus', value: 15, desc: '【无中生有】无视你的存款多少，通关直接变出 15 🧶 虚假利息！' } },
 
         // --- SR级 (15%) 71-85 ---
         { id: 71, name: '赛博黑客', rarity: 'SR', color: '#0F172A', belly: '#1E293B', eyes: 'cyber-visor', tail: 'mecha', bodygear: 'cyber-jacket', held: 'laptop', aura: 'neon-glow', desc: '正在入侵智能喂食器的主板...', ability: { type: 'cross_blast', value: 2, desc: '【系统黑入】开局精准定位，释放两次十字爆破' } },
@@ -159,14 +162,14 @@
         { id: 75, name: '魔法星光少女', rarity: 'SR', color: '#FBCFE8', belly: '#FDF2F8', eyes: 'star', headgear: 'magical-ribbon', held: 'star-staff', desc: '代表月亮，消灭烦恼！', ability: { type: 'bonus_yarn_win', value: 20, desc: '【星光爆裂】通关巨量掉落 20 🧶' } },
         { id: 76, name: '陵墓法老猫', rarity: 'SR', color: '#D4D4D8', belly: '#E4E4E7', bodygear: 'bandages', headgear: 'pharaoh-crown', desc: '被猫砂盆香味唤醒的千年法老。', ability: { type: 'refund_move_chance', value: 0.30, desc: '【法老诅咒】30%超高概率行动不耗步数' } },
         { id: 77, name: '剧毒史莱姆喵', rarity: 'SR', color: '#84CC16', belly: '#A3E635', aura: 'slime-drip', desc: '全身半透明酸液构成，其实是苹果味的。', ability: { type: 'purify_on_move', value: 3, desc: '【酸液蔓延】极其致命！每行动自动腐蚀同化 3 个方块' } },
-        { id: 78, name: '科学怪喵', rarity: 'SR', color: '#14532D', belly: '#166534', bodygear: 'bandages', headgear: 'goggles-up', held: 'potion', desc: '闪电与猫薄荷混合后的疯狂产物。', ability: { type: 'chaos_on_move', value: 3, desc: '【疯狂实验】失控！每次行动严重打乱 3 个方块！' } },
+        { id: 78, name: '科学怪喵', rarity: 'SR', color: '#14532D', belly: '#166534', bodygear: 'bandages', headgear: 'goggles-up', held: 'potion', desc: '闪电与猫薄荷混合后的疯狂产物。', ability: { type: 'start_explosion', value: 3, desc: '【雷霆轰炸】开局引爆 3 个大范围十字炸弹！' } }, // 新技能
         { id: 79, name: '亡灵幽灵猫', rarity: 'SR', color: '#99F6E4', belly: '#CCFBF1', eyes: 'ghost-eyes', aura: 'ghostly', desc: '物理攻击无效，除非拿出冻干。', ability: { type: 'free_moves', value: 6, desc: '【无视物理】穿墙脱身，前 6 步免单' } },
-        { id: 80, name: '蒸汽朋克发明家', rarity: 'SR', color: '#92400E', belly: '#B45309', headgear: 'goggles-up', bodygear: 'steampunk-gear', held: 'magnifying-glass', desc: '它发明的自动逗猫机差点拆了房子。', ability: { type: 'multiply_reward', value: 1.5, desc: '【专利分红】通关总收益增加 50%' } },
+        { id: 80, name: '蒸汽朋克发明家', rarity: 'SR', color: '#92400E', belly: '#B45309', headgear: 'goggles-up', bodygear: 'steampunk-gear', held: 'magnifying-glass', desc: '它发明的自动逗猫机差点拆了房子。', ability: { type: 'dynamic_multiplier', value: 0.05, desc: '【精密计算】每剩余 1 步，通关收益倍率增加 0.05！' } }, // 新技能
         { id: 81, name: '森林大德鲁伊', rarity: 'SR', color: '#065F46', belly: '#10B981', headgear: 'flower-crown', bodygear: 'leaf-cape', held: 'star-staff', desc: '能听懂鸟语，并指挥鸟儿给它抓虫子。', ability: { type: 'purify_on_move', value: 4, desc: '【自然蔓延】神级被动！每次点击自然同化 4 个方块！' } },
-        { id: 82, name: '幽灵海盗船长', rarity: 'SR', color: '#0F766E', belly: '#14B8A6', eyes: 'eyepatch', headgear: 'pirate-hat', bodygear: 'bat-wings', aura: 'ghostly', desc: '在七海之上游荡，寻找丢失的金枪鱼。', ability: { type: 'invest_yarn', value: 25, desc: '【海盗赌局】开局抢走 25 🧶，过关则暴金币返还 75 🧶！' } },
+        { id: 82, name: '幽灵海盗船长', rarity: 'SR', color: '#0F766E', belly: '#14B8A6', eyes: 'eyepatch', headgear: 'pirate-hat', bodygear: 'bat-wings', aura: 'ghostly', desc: '在七海之上游荡，寻找丢失的金枪鱼。', ability: { type: 'loan_shark', value: 30, extra_value: 0.5, desc: '【深海高利贷】开局暴增 30 步上限！但通关收益被克扣一半！' } }, // 新技能
         { id: 83, name: '炼狱双头恶犬(伪)', rarity: 'SR', color: '#450A0A', belly: '#7F1D1D', eyes: 'red-glow', headgear: 'horns', tail: 'dragon', aura: 'spirit-fire', desc: '虽然假装自己很可怕，但叫声依然是“喵”。', ability: { type: 'bomb_3x3', value: 3, desc: '【地狱火球】开局狂轰滥炸 3 颗九宫格炸弹！' } },
         { id: 84, name: '魔法药剂大宗师', rarity: 'SR', color: '#4C1D95', belly: '#7C3AED', headgear: 'wizard-hat', held: 'potion', aura: 'slime-drip', desc: '它熬制的猫薄荷浓缩液能让猫飞上天。', ability: { type: 'color_wipe', value: 1, desc: '【化学中和】中和抹除了盘面的 1 种颜色' } },
-        { id: 85, name: '机动特警', rarity: 'SR', color: '#1E40AF', belly: '#3B82F6', eyes: 'cyber-visor', headgear: 'viking-helmet', held: 'beam-saber', desc: '专门逮捕半夜跑酷扰民的犯罪分子。', ability: { type: 'prevent_loss_penalty', value: true, desc: '【特警护航】保护你免受失败扣费惩罚' } },
+        { id: 85, name: '机动特警', rarity: 'SR', color: '#1E40AF', belly: '#3B82F6', eyes: 'cyber-visor', headgear: 'viking-helmet', held: 'beam-saber', desc: '专门逮捕半夜跑酷扰民的犯罪分子。', ability: { type: 'interest_based_moves', value: 50, extra_value: 10, desc: '【经费充足】存款每有 50 🧶，开局步数上限+1 (最多+10)' } }, // 新技能
 
         // --- SSR级 (10%) 86-95 ---
         { id: 86, name: '星空大星象师', rarity: 'SSR', color: '#312E81', belly: '#4338CA', eyes: 'cosmic', headgear: 'galaxy-hat', bodygear: 'star-cape', desc: '长袍里装着一整个微缩宇宙。', ability: { type: 'unify_color', value: 30, desc: '【星辰排列】神迹降临！开局同化 30 个方块！' } },
@@ -175,17 +178,17 @@
         { id: 89, name: '赛博武士·雷切', rarity: 'SSR', color: '#1E293B', belly: '#334155', eyes: 'cyber-visor', tail: 'mecha', bodygear: 'samurai-armor', held: 'katana', aura: 'neon-glow', desc: '刀刃闪烁高频电压，斩断一切阻碍。', ability: { type: 'refund_move_chance', value: 0.40, desc: '【电光石火】40%概率神速行动不耗步数' } },
         { id: 90, name: '凛冬冰雪女王', rarity: 'SSR', color: '#E0F2FE', belly: '#F0F9FF', headgear: 'ice-crown', aura: 'snowflakes', desc: '走过的地方，猫粮都会结冰。', ability: { type: 'color_wipe', value: 2, desc: '【冰封万里】霸道！直接冻结抹除 2 种颜色' } },
         { id: 91, name: '烈阳神·阿波罗', rarity: 'SSR', color: '#FEF08A', belly: '#FEF9C3', bodygear: 'golden-armor', aura: 'sun-halo', desc: '自带耀眼光芒，冬天最棒的移动暖炉。', ability: { type: 'multiply_reward', value: 2, desc: '【烈阳普照】通关最终收益直接 × 2 倍！' } },
-        { id: 92, name: '时空漫游者', rarity: 'SSR', color: '#FCD34D', belly: '#FDE047', eyes: 'clock-face', bodygear: 'steampunk-gear', aura: 'clock-aura', desc: '可以在不同时间的饭点之间来回穿梭。', ability: { type: 'free_moves', value: 10, desc: '【时间倒流】逆天！前 10 步随意操作免单' } },
-        { id: 93, name: '幻影刺客大师', rarity: 'SSR', color: '#000000', belly: '#111827', eyes: 'red-glow', headgear: 'ninja-headband', held: 'katana', aura: 'ghostly', desc: '你永远不知道它是从哪里掏出刀的。', ability: { type: 'lucky_win', value: 15, extra_value: 150, desc: '【十步杀一人】若刚好在第 15 步通关，暗杀成功奖励 150 🧶！' } },
-        { id: 94, name: '元素聚合体', rarity: 'SSR', color: '#A855F7', belly: '#D8B4FE', tail: 'tentacle-mass', headgear: 'halo', aura: 'rainbow-ring', desc: '掌控着水、火、土、风、以及猫砂。', ability: { type: 'color_wipe', value: 2, desc: '【元素剥夺】直接剥夺抹除 2 种颜色' } },
-        { id: 95, name: '黄金巨龙神', rarity: 'SSR', color: '#B45309', belly: '#F59E0B', tail: 'dragon', bodygear: 'dragon-wings', headgear: 'pharaoh-crown', aura: 'sun-halo', desc: '睡在堆积如山的小鱼干上，守护财宝。', ability: { type: 'multiply_reward', value: 2.5, desc: '【巨龙宝库】通关最终收益暴涨 2.5 倍！' } },
+        { id: 92, name: '时空漫游者', rarity: 'SSR', color: '#FCD34D', belly: '#FDE047', eyes: 'clock-face', bodygear: 'steampunk-gear', aura: 'clock-aura', desc: '可以在不同时间的饭点之间来回穿梭。', ability: { type: 'tax_evasion', value: 0.3, desc: '【时空套利】通关时，有 30% 概率让本次利息收益翻 3 倍！' } }, // 新技能
+        { id: 93, name: '幻影刺客大师', rarity: 'SSR', color: '#000000', belly: '#111827', eyes: 'red-glow', headgear: 'ninja-headband', held: 'katana', aura: 'ghostly', desc: '你永远不知道它是从哪里掏出刀的。', ability: { type: 'cross_blast', value: 2, desc: '【十字斩杀】恐怖！连续两次十字爆破同化盘面！' } },
+        { id: 94, name: '元素聚合体', rarity: 'SSR', color: '#A855F7', belly: '#D8B4FE', tail: 'tentacle-mass', headgear: 'halo', aura: 'rainbow-ring', desc: '掌控着水、火、土、风、以及猫砂。', ability: { type: 'color_infect', value: 1, desc: '【元素侵蚀】每步操作后，盘面上最多的颜色会自动吞噬扩张！' } }, // 新技能
+        { id: 95, name: '黄金巨龙神', rarity: 'SSR', color: '#B45309', belly: '#F59E0B', tail: 'dragon', bodygear: 'dragon-wings', headgear: 'pharaoh-crown', aura: 'sun-halo', desc: '睡在堆积如山的小鱼干上，守护财宝。', ability: { type: 'interest_limitless', value: 0.20, desc: '【龙族宝库】巨富！通关利息率飙升至 20%，且彻底打破利息上限！' } },
 
         // --- UR级 (5%) 全员降维打击 96-100 ---
         { id: 96, name: '混沌·克苏鲁喵', rarity: 'UR', color: '#1E1B4B', belly: '#312E81', eyes: 'multiple', mouth: 'tentacles', tail: 'tentacle-mass', headgear: 'cosmic-crown', aura: 'dark-vortex', desc: '凝视深渊，深渊会向你讨要猫条。', ability: { type: 'color_wipe', value: 3, desc: '【降维打击】无理！直接强行抹除 3 种颜色！' } },
         { id: 97, name: '薛定谔的观测者', rarity: 'UR', color: '#38BDF8', belly: '#BAE6FD', eyes: 'cyber-visor', tail: 'twin', aura: 'quantum-glitch', desc: '同时存在于开盒与未开盒的状态，概率的化身。', ability: { type: 'refund_move_chance', value: 0.60, desc: '【量子叠加态】作弊！高达 60% 概率行动不耗步数' } },
         { id: 98, name: '真理·创世神喵', rarity: 'UR', color: '#F8FAFC', belly: '#FFFFFF', eyes: 'cosmic', headgear: 'halo', held: 'paintbrush', aura: 'sacred-geometry', tail: 'fluffy', desc: '用手中的画笔，绘制出了世界上的100只猫咪。', ability: { type: 'multiply_reward', value: 3, desc: '【创世干预】神恩浩荡：通关总收益夸张地 × 3 倍！' } },
-        { id: 99, name: '维度吞噬者', rarity: 'UR', color: '#000000', belly: '#111827', eyes: 'red-glow', tail: 'dragon', aura: 'dimension-shatter', desc: '它每一次打呼噜，都会引发平行宇宙的地震。', ability: { type: 'auto_win_chance', value: 0.20, desc: '【黑洞吞噬】开局有 20% 的惊人概率直接碾压通关！' } },
-        { id: 100, name: '概念纠缠·矩阵之眼', rarity: 'UR', color: '#064E3B', belly: '#047857', eyes: 'monocle', headgear: 'cyber-visor', aura: 'matrix-rain', desc: '看透了世界是一段代码，于是它黑进了自动喂食器。', ability: { type: 'purify_on_move', value: 10, desc: '【底层篡改】霸权！每走一步直接篡改同化 10 个方块！无敌！' } },
+        { id: 99, name: '维度吞噬者', rarity: 'UR', color: '#000000', belly: '#111827', eyes: 'red-glow', tail: 'dragon', aura: 'dimension-shatter', desc: '它每一次打呼噜，都会引发平行宇宙的地震。', ability: { type: 'gamble_all_in', value: 1.5, desc: '【吞噬豪赌】开局没收所有存款！若通关返还全部本金再加 50% 暴利！失败则倾家荡产！' } }, // 新技能
+        { id: 100, name: '概念纠缠·矩阵之眼', rarity: 'UR', color: '#064E3B', belly: '#047857', eyes: 'monocle', headgear: 'cyber-visor', aura: 'matrix-rain', desc: '看透了世界是一段代码，于是它黑进了自动喂食器。', ability: { type: 'unify_color', value: 60, desc: '【修改底层代码】霸权！开局瞬间强行同化 60 个方块！' } },
         ];
 
         // --- SVG 渲染器 ---
@@ -211,6 +214,7 @@
                     </pattern>
                     </defs>
 
+                    {/* --- 特效光环 Aura (Back) --- */}
                     {cat.aura === 'neon-glow' && <circle cx="100" cy="120" r="80" fill={`url(#glow-${cat.id})`} opacity="0.4" />}
                     {cat.aura === 'spirit-fire' && (
                     <g fill="#38BDF8" opacity="0.7" className="animate-float">
@@ -256,6 +260,8 @@
                         <circle cx="0" cy="0" r="60" fill="none" stroke="#A855F7" strokeWidth="3" opacity="0.8" />
                     </g>
                     )}
+                    
+                    {/* UR 专属超级动效 */}
                     {cat.aura === 'dark-vortex' && (
                     <g transform="translate(100, 100)" className="animate-spin-slow">
                         <path d="M 0 0 C 60 0, 100 60, 0 100 C -100 60, -60 0, 0 0" fill="none" stroke="#4C1D95" strokeWidth="12" filter="blur(6px)" opacity="0.8" />
@@ -821,7 +827,7 @@
             const [maxMoves, setMaxMoves] = useState(BASE_MAX_MOVES);
             const [board, setBoard] = useState([]);
             const [moves, setMoves] = useState(0);
-            const [gameState, setGameState] = useState({ status: 'playing', reward: 0, bonus: 0, penalty: 0 }); 
+            const [gameState, setGameState] = useState({ status: 'playing', reward: 0, bonus: 0, penalty: 0, interest: 0, lossInterest: 0 }); 
             const [startPos, setStartPos] = useState([0,0]); 
             const [affectedCells, setAffectedCells] = useState(new Set()); 
             
@@ -829,6 +835,7 @@
             const [companion, setCompanion] = useState(null);
             const [triggerAnim, setTriggerAnim] = useState(0);
             const [freeMovesLeft, setFreeMovesLeft] = useState(0);
+            const [gambledYarn, setGambledYarn] = useState(0);
 
             const [summonState, setSummonState] = useState('idle'); 
             const [summonResult, setSummonResult] = useState(null); 
@@ -937,6 +944,9 @@
                 let initFreeMoves = 0;
                 let newlyAffected = new Set();
                 
+                // 处理那些开局就要扣钱/冻结本金的技能
+                let currentYarn = yarn; 
+
                 if (currentCompanion && currentCompanion.ability) {
                     const ab = currentCompanion.ability;
                     setTriggerAnim(Date.now());
@@ -1004,9 +1014,34 @@
                                 }
                             }
                         }
+                    } else if (ab.type === 'convert_minority') {
+                        let colorCounts = {};
+                        for(let r=0; r<BOARD_SIZE; r++){
+                            for(let c=0; c<BOARD_SIZE; c++){
+                                let color = newBoard[r][c];
+                                if(color !== EMPTY_CELL) {
+                                    colorCounts[color] = (colorCounts[color] || 0) + 1;
+                                }
+                            }
+                        }
+                        let minColor = -1, minCount = Infinity;
+                        let maxColor = -1, maxCount = -1;
+                        for (let color in colorCounts) {
+                            if (colorCounts[color] < minCount) { minCount = colorCounts[color]; minColor = parseInt(color); }
+                            if (colorCounts[color] > maxCount) { maxCount = colorCounts[color]; maxColor = parseInt(color); }
+                        }
+                        if (minColor !== -1 && maxColor !== -1 && minColor !== maxColor) {
+                            for(let r=0; r<BOARD_SIZE; r++){
+                                for(let c=0; c<BOARD_SIZE; c++){
+                                    if(newBoard[r][c] === minColor) {
+                                        newBoard[r][c] = maxColor;
+                                        newlyAffected.add(`${r},${c}`);
+                                    }
+                                }
+                            }
+                        }
                     } else if (ab.type === 'bomb_3x3') {
                         let startColor = newBoard[sR][sC];
-                        // 投掷多次炸弹
                         for(let i=0; i<ab.value; i++) {
                             let targetR = Math.floor(Math.random() * BOARD_SIZE);
                             let targetC = Math.floor(Math.random() * BOARD_SIZE);
@@ -1029,10 +1064,33 @@
                                 if(newBoard[j][targetC] !== EMPTY_CELL) { newBoard[j][targetC] = startColor; newlyAffected.add(`${j},${targetC}`); }
                             }
                         }
+                    } else if (ab.type === 'start_explosion') {
+                        let startColor = newBoard[sR][sC];
+                        for(let i=0; i<ab.value; i++) {
+                            let targetR = Math.floor(Math.random() * BOARD_SIZE);
+                            let targetC = Math.floor(Math.random() * BOARD_SIZE);
+                            // 十字爆炸
+                            if(targetR-1>=0 && newBoard[targetR-1][targetC]!==EMPTY_CELL) { newBoard[targetR-1][targetC]=startColor; newlyAffected.add(`${targetR-1},${targetC}`); }
+                            if(targetR+1<BOARD_SIZE && newBoard[targetR+1][targetC]!==EMPTY_CELL) { newBoard[targetR+1][targetC]=startColor; newlyAffected.add(`${targetR+1},${targetC}`); }
+                            if(targetC-1>=0 && newBoard[targetR][targetC-1]!==EMPTY_CELL) { newBoard[targetR][targetC-1]=startColor; newlyAffected.add(`${targetR},${targetC-1}`); }
+                            if(targetC+1<BOARD_SIZE && newBoard[targetR][targetC+1]!==EMPTY_CELL) { newBoard[targetR][targetC+1]=startColor; newlyAffected.add(`${targetR},${targetC+1}`); }
+                            if(newBoard[targetR][targetC]!==EMPTY_CELL) { newBoard[targetR][targetC]=startColor; newlyAffected.add(`${targetR},${targetC}`); }
+                        }
+                    } else if (ab.type === 'interest_based_moves') {
+                        let extraMoves = Math.min(ab.extra_value, Math.floor(currentYarn / ab.value));
+                        calculatedMaxMoves += extraMoves;
+                    } else if (ab.type === 'loan_shark') {
+                        calculatedMaxMoves += ab.value;
                     } else if (ab.type === 'invest_yarn') {
                         setYarn(y => Math.max(0, y - ab.value));
+                        currentYarn = Math.max(0, currentYarn - ab.value);
                     } else if (ab.type === 'steal_yarn') {
                         setYarn(y => Math.max(0, y - ab.value));
+                        currentYarn = Math.max(0, currentYarn - ab.value);
+                    } else if (ab.type === 'gamble_all_in') {
+                        setGambledYarn(currentYarn);
+                        setYarn(0);
+                        currentYarn = 0;
                     } else if (ab.type === 'auto_win_chance') {
                         if (Math.random() < ab.value) {
                             let startColor = newBoard[sR][sC];
@@ -1064,40 +1122,106 @@
                     }
                 }
                 if (isWin) {
-                    handleWin(0, calculatedMaxMoves, currentCompanion);
+                    handleWin(0, calculatedMaxMoves, currentCompanion, currentYarn);
                 } else {
-                    setGameState({ status: 'playing', reward: 0, bonus: 0 });
+                    setGameState({ status: 'playing', reward: 0, bonus: 0, penalty: 0, interest: 0, lossInterest: 0 });
                 }
-            }, [collection]);
+            }, [collection, yarn]); // 依赖 yarn，因为有扣除技能
 
             useEffect(() => { generateIrregularBoard(); }, []);
 
-            const handleWin = (currentMoves, mxMoves, comp) => {
+            const handleWin = (currentMoves, mxMoves, comp, finalYarnStr) => {
+                let currentYarn = finalYarnStr !== undefined ? finalYarnStr : yarn;
                 const bonus = (mxMoves - currentMoves) * 3;
                 let compBonus = 0;
                 let mult = 1;
                 let customMsg = '';
+
+                // 利息逻辑计算
+                let interestRate = 0.10;
+                let interestCap = 30;
+                let interestTimes = 1;
+                let flatInterest = 0;
                 
                 if (comp && comp.ability) {
-                    if (comp.ability.type === 'bonus_yarn_win') compBonus += comp.ability.value;
-                    if (comp.ability.type === 'multiply_reward') mult = comp.ability.value;
-                    if (comp.ability.type === 'invest_yarn') {
-                        compBonus += comp.ability.value * 3;
+                    const ab = comp.ability;
+                    if (ab.type === 'bonus_yarn_win') compBonus += ab.value;
+                    if (ab.type === 'multiply_reward') mult = ab.value;
+                    if (ab.type === 'invest_yarn') {
+                        compBonus += ab.value * 3;
                         customMsg = '获得投资回报！';
                     }
-                    if (comp.ability.type === 'lucky_win') {
-                        if (currentMoves === comp.ability.value) {
-                            compBonus += (comp.ability.extra_value || 100);
+                    if (ab.type === 'gamble_all_in') {
+                        compBonus += Math.floor(gambledYarn * ab.value);
+                        customMsg = '赢下生死局！暴利返还！';
+                    }
+                    if (ab.type === 'lucky_win') {
+                        if (currentMoves === ab.value) {
+                            compBonus += (ab.extra_value || 100);
                             customMsg = '触发命运数字！';
                         }
                     }
-                    if (comp.ability.extra_win_bonus) compBonus += comp.ability.extra_win_bonus;
-                    if (comp.ability.extra_multiplier) mult *= comp.ability.extra_multiplier;
+                    if (ab.type === 'dynamic_multiplier') mult += (mxMoves - currentMoves) * ab.value;
+                    if (ab.type === 'loan_shark') mult *= ab.extra_value;
+                    if (ab.type === 'interest_step_bonus') flatInterest += (mxMoves - currentMoves) * ab.value;
+                    if (ab.type === 'interest_on_move') flatInterest += currentMoves * ab.value;
+                    
+                    if (ab.type === 'interest_cap_up') interestCap += ab.value;
+                    if (ab.type === 'interest_rate_up') interestRate += ab.value;
+                    if (ab.type === 'interest_limitless') {
+                        interestCap = Infinity;
+                        interestRate = ab.value;
+                    }
+                    if (ab.type === 'compound_interest') interestTimes = ab.value;
+                    if (ab.type === 'interest_flat_bonus') flatInterest += ab.value;
+                    if (ab.type === 'tax_evasion') {
+                        if (Math.random() < ab.value) {
+                            interestRate *= 3;
+                            interestCap *= 3;
+                            customMsg = '利息暴击翻倍！';
+                        }
+                    }
+
+                    if (ab.extra_win_bonus) compBonus += ab.extra_win_bonus;
+                    if (ab.extra_multiplier) mult *= ab.extra_multiplier;
                 }
 
-                const totalReward = Math.floor((10 + bonus + compBonus) * mult);
-                setGameState({ status: 'won', reward: totalReward, bonus: bonus, baseReward: 10, compBonus, mult, customMsg });
-                setYarn(prev => prev + totalReward);
+                // 计算当前持有的毛线能产生的最终利息 (高利贷不产生利息)
+                let totalInterest = 0;
+                if (!comp || !comp.ability || comp.ability.type !== 'loan_shark') {
+                    let currentTempYarn = currentYarn;
+                    for(let i=0; i<interestTimes; i++){
+                        let intst = Math.floor(currentTempYarn * interestRate);
+                        if (intst > interestCap) intst = interestCap;
+                        totalInterest += intst;
+                        currentTempYarn += intst;
+                    }
+                }
+                totalInterest += flatInterest;
+
+                let finalReward = Math.floor((10 + bonus + compBonus + totalInterest) * mult);
+                
+                // 破产保护判断 (结算之后)
+                if (comp && comp.ability && comp.ability.type === 'bankrupt_recovery') {
+                    if (currentYarn + finalReward < comp.ability.value) {
+                        let diff = comp.ability.value - (currentYarn + finalReward);
+                        finalReward += diff;
+                        customMsg = '触发破产低保补偿！';
+                    }
+                }
+
+                setGameState({ 
+                    status: 'won', 
+                    reward: finalReward, 
+                    bonus: bonus, 
+                    baseReward: 10, 
+                    compBonus, 
+                    mult, 
+                    customMsg,
+                    interest: totalInterest 
+                });
+                setYarn(currentYarn + finalReward);
+                setGambledYarn(0); // 清理赌注
             };
 
             const handleColorClick = (targetColorIdx) => {
@@ -1159,6 +1283,36 @@
                             newlyAffected.add(`${rr},${rc}`);
                             valid.splice(idx, 1);
                         }
+                    } else if (ab.type === 'color_infect') {
+                        let colorCounts = {};
+                        for(let r=0; r<BOARD_SIZE; r++) {
+                            for(let c=0; c<BOARD_SIZE; c++) {
+                                let cVal = newBoard[r][c];
+                                if(cVal !== EMPTY_CELL) colorCounts[cVal] = (colorCounts[cVal]||0)+1;
+                            }
+                        }
+                        let maxColor = -1, maxC = -1;
+                        for(let k in colorCounts) { if(colorCounts[k] > maxC) { maxC = colorCounts[k]; maxColor = parseInt(k); } }
+                        
+                        let validTargets = [];
+                        for(let r=0; r<BOARD_SIZE; r++) {
+                            for(let c=0; c<BOARD_SIZE; c++) {
+                                if(newBoard[r][c] === maxColor) {
+                                    const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+                                    for(let [dr, dc] of dirs) {
+                                        let nr = r + dr, nc = c + dc;
+                                        if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && newBoard[nr][nc] !== EMPTY_CELL && newBoard[nr][nc] !== maxColor) {
+                                            validTargets.push([nr, nc]);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if(validTargets.length > 0) {
+                            let [rr, rc] = validTargets[Math.floor(Math.random()*validTargets.length)];
+                            newBoard[rr][rc] = maxColor;
+                            newlyAffected.add(`${rr},${rc}`);
+                        }
                     }
                 }
                 
@@ -1196,19 +1350,36 @@
                 if (isWin) {
                     handleWin(newMoves, maxMoves, companion);
                 } else if (newMoves >= maxMoves) {
+                    // 氪金买命技能判断
+                    if (companion && companion.ability && companion.ability.type === 'pay_for_moves') {
+                        if (yarn >= companion.ability.value) {
+                            setYarn(prev => prev - companion.ability.value);
+                            setMaxMoves(prev => prev + companion.ability.extra_value);
+                            setTriggerAnim(Date.now());
+                            return; // 阻止失败，继续游戏
+                        }
+                    }
+
                     let penalty = 5;
+                    let lossInterest = 0;
                     if (companion && companion.ability) {
                         if (companion.ability.type === 'prevent_loss_penalty') penalty = 0;
                         if (companion.ability.type === 'extra_loss_penalty') penalty += companion.ability.value;
+                        if (companion.ability.type === 'loss_interest') {
+                            lossInterest = Math.min(20, Math.floor(yarn * companion.ability.value)); 
+                        }
                     }
-                    setGameState({ status: 'lost', reward: 0, bonus: 0, penalty });
-                    setYarn(prev => Math.max(0, prev - penalty));
+                    const netChange = lossInterest - penalty;
+                    setGameState({ status: 'lost', reward: 0, bonus: 0, penalty, lossInterest, interest: 0 });
+                    setYarn(prev => Math.max(0, prev + netChange));
+                    setGambledYarn(0); // 失败清空赌注
                 }
             };
 
             const handleGiveUp = () => {
                 if (gameState.status === 'playing') {
                     setYarn(prev => Math.max(0, prev - 5));
+                    setGambledYarn(0); // 放弃也算失败，清空赌注
                 }
                 generateIrregularBoard();
             };
@@ -1255,6 +1426,7 @@
 
             return (
                 <div className="min-h-screen flex flex-col relative overflow-hidden bg-slate-900 pb-10">
+                    {/* 顶部导航与状态栏 */}
                     <div className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-xl border-b border-slate-800 shadow-md">
                         <div className="px-4 py-3 flex justify-between items-center max-w-4xl mx-auto">
                             <div className="flex items-center gap-2">
@@ -1264,6 +1436,7 @@
                                 <h1 className="text-lg font-black text-white tracking-tight hidden sm:block">魔法盲盒</h1>
                             </div>
                             
+                            {/* 标签切换 */}
                             <div className="flex bg-slate-800 p-1 rounded-xl shadow-inner border border-slate-700">
                                 <button 
                                     onClick={() => setCurrentView('game')}
@@ -1287,20 +1460,30 @@
                                 >
                                     <SaveIcon className="w-5 h-5" />
                                 </button>
-                                <div className="flex items-center bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 shadow-inner">
-                                    <span className="text-lg sm:text-xl font-black text-indigo-400 flex items-center gap-1 transition-all">
-                                        {yarn} <span className="text-lg sm:text-xl drop-shadow-md">🧶</span>
-                                    </span>
+                                <div className="flex flex-col items-end relative">
+                                    <div className="flex items-center bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 shadow-inner">
+                                        <span className="text-lg sm:text-xl font-black text-indigo-400 flex items-center gap-1 transition-all">
+                                            {yarn} <span className="text-lg sm:text-xl drop-shadow-md">🧶</span>
+                                        </span>
+                                    </div>
+                                    {gambledYarn > 0 && (
+                                        <span className="absolute -bottom-4 right-0 text-[10px] text-red-400 font-bold whitespace-nowrap animate-pulse">
+                                            已押注: {gambledYarn}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         </div>
                     </div>
 
+                    {/* 主体内容区 */}
                     <div className="flex-1 p-4 md:p-6 w-full max-w-4xl mx-auto flex flex-col justify-center">
                         
+                        {/* ================= 解谜大厅 View ================= */}
                         {currentView === 'game' && (
                             <div className="bg-slate-800 rounded-[2rem] p-5 sm:p-8 shadow-2xl border border-slate-700 flex flex-col items-center relative overflow-hidden animate-fade-in w-full max-w-lg mx-auto">
                                 
+                                {/* 羁绊陪伴UI */}
                                 {companion && gameState.status === 'playing' && (
                                     <div className={`w-full bg-slate-900/80 p-3 rounded-2xl mb-4 flex items-center gap-3 border-2 transition-colors duration-300 shadow-inner ${triggerAnim ? 'border-emerald-500/50' : 'border-indigo-500/30'}`}>
                                         <div className="w-12 h-12 bg-slate-800 rounded-full flex-shrink-0 overflow-hidden shadow-md border border-slate-700 relative">
@@ -1331,6 +1514,7 @@
                                     </div>
                                 </div>
 
+                                {/* 棋盘区域 */}
                                 <div className="w-full aspect-square max-w-sm mb-8 relative flex justify-center items-center">
                                     <div className="grid gap-1 relative w-full h-full" style={{ gridTemplateColumns: `repeat(${BOARD_SIZE}, minmax(0, 1fr))` }}>
                                         {board.map((row, r) => row.map((colorIdx, c) => {
@@ -1379,9 +1563,15 @@
                                                                 <span className="text-indigo-400">+{gameState.compBonus}</span>
                                                             </div>
                                                         )}
+                                                        {gameState.interest > 0 && (
+                                                            <div className="flex justify-between w-full">
+                                                                <span className="text-slate-400">理财利息</span>
+                                                                <span className="text-yellow-400">+{gameState.interest}</span>
+                                                            </div>
+                                                        )}
                                                         {gameState.mult > 1 && (
                                                             <div className="flex justify-between w-full border-t border-slate-600 pt-2 mt-1">
-                                                                <span className="text-yellow-400">倍率爆发</span>
+                                                                <span className="text-yellow-400">羁绊倍率</span>
                                                                 <span className="text-yellow-400">x{gameState.mult}</span>
                                                             </div>
                                                         )}
@@ -1401,6 +1591,9 @@
                                                         <p className="text-sm font-bold text-emerald-400 bg-emerald-900/20 px-5 py-2 rounded-full border border-emerald-800/50">羁绊庇护：免除惩罚！</p>
                                                     ) : (
                                                         <p className="text-sm font-bold text-red-400 bg-red-900/20 px-5 py-2 rounded-full border border-red-800/50">失败扣除 {gameState.penalty} 🧶</p>
+                                                    )}
+                                                    {gameState.lossInterest > 0 && (
+                                                        <p className="text-sm font-bold text-yellow-400 mt-2">获得保底利息 +{gameState.lossInterest} 🧶</p>
                                                     )}
                                                 </React.Fragment>
                                             )}
@@ -1441,6 +1634,7 @@
                         {currentView === 'collection' && (
                             <div className="bg-slate-800 rounded-[2rem] p-5 sm:p-8 shadow-2xl border border-slate-700 flex flex-col h-[75vh] w-full max-w-4xl mx-auto animate-fade-in relative">
                                 
+                                {/* 顶部状态与抽卡按钮 */}
                                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b border-slate-700 pb-6 z-10">
                                     <div className="w-full sm:w-auto">
                                         <h2 className="text-2xl font-black text-white flex items-center gap-2">
@@ -1472,6 +1666,7 @@
                                     </button>
                                 </div>
 
+                                {/* 图鉴网格 */}
                                 <div className="flex-1 overflow-y-auto bg-slate-900 rounded-2xl p-4 sm:p-6 border border-slate-700 custom-scrollbar shadow-inner relative z-0">
                                     <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2 sm:gap-3">
                                         {CAT_DICTIONARY.map(cat => {
@@ -1564,6 +1759,7 @@
                             {(summonState === 'revealed' || (summonResult && summonResult.forceShow)) && summonResult && (
                                 <div className="bg-slate-800 rounded-[2rem] p-6 sm:p-8 max-w-md w-full max-h-[90vh] overflow-y-auto custom-scrollbar flex flex-col text-center shadow-2xl transform animate-item-pop relative border border-slate-600" onClick={e => e.stopPropagation()}>
                                     
+                                    {/* 修复：右上角绝对安全的关闭按钮 */}
                                     <button onClick={closeResult} className="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-700 hover:bg-slate-600 p-2 rounded-full transition-colors z-50 shadow-md">
                                         <CloseIcon className="w-5 h-5" />
                                     </button>
