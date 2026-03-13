@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>喵星魔法盲盒 - 策略羁绊版</title>
+    <title>喵星魔法盲盒 - 代码存档版</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -52,21 +52,22 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useRef } = React;
 
-        // --- SVG 图标 ---
+        // 全局常量配置
+        const GRID_COLORS = ['#EF4444', '#3B82F6', '#F59E0B', '#10B981']; // 4种颜色：红蓝黄绿
+        const EMPTY_CELL = -1;
+        const REFUND_RATES = { 'N': 10, 'R': 15, 'SR': 25, 'SSR': 35, 'UR': 50 };
+
+        // --- SVG 图标组件 ---
         const PackageIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>;
         const GiftIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>;
         const RefreshCwIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>;
         const AlertCircleIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>;
         const ZapIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>;
         const GamepadIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="6" y1="12" x2="10" y2="12"></line><line x1="8" y1="10" x2="8" y2="14"></line><line x1="15" y1="13" x2="15.01" y2="13"></line><line x1="18" y1="11" x2="18.01" y2="11"></line><rect x="2" y="6" width="20" height="12" rx="2"></rect></svg>;
+        const SaveIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>;
+        const CheckIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12"></polyline></svg>;
 
-        // --- 全新技能库定义 ---
-        // 新增了更强力的机制：
-        // color_wipe: 彻底抹除盘面上某种颜色
-        // free_moves: 冻结步数（前 X 步不扣除）
-        // multiply_reward: 结算倍率翻倍
-        // auto_win_chance: 极小概率直接把盘面刷成一个颜色
-        
+        // --- 全新技能库定义 (百猫图鉴) ---
         const CAT_DICTIONARY = [
         // --- N级 (40%) ---
         { id: 1, name: '吃瓜橘猫', rarity: 'N', color: '#FDBA74', belly: '#FFF7ED', eyes: 'happy', mouth: 'blep', tail: 'normal', desc: '看起来很好吃，实际上很能吃。', ability: { type: 'bonus_yarn_win', value: 3, desc: '【吃货福利】通关额外找到 3 🧶' } },
@@ -79,7 +80,7 @@
         { id: 8, name: '摸鱼上班族', rarity: 'N', color: '#FCD34D', belly: '#FEF3C7', eyes: 'dead-fish', mouth: 'smile', held: 'coffee', desc: '靠着一杯特浓黑咖啡续命的打工人。', ability: { type: 'free_moves', value: 2, desc: '【带薪拉屎】前 2 步偷偷行动不计入消耗' } },
         { id: 9, name: '白化仙女猫', rarity: 'N', color: '#FFFFFF', belly: '#FFFFFF', eyes: 'star', mouth: 'smile', tail: 'normal', desc: '雪白纯洁，像个小仙女。', ability: { type: 'bonus_yarn_win', value: 4, desc: '【仙女赐福】通关额外获得 4 🧶' } },
         { id: 10, name: '奶牛斑纹喵', rarity: 'N', color: '#FFFFFF', belly: '#FFFFFF', spots: ['#111827', '#111827'], eyes: 'googly', mouth: 'open', tail: 'normal', desc: '神经大条，经常平地摔。', ability: { type: 'steal_yarn', value: 2, desc: '【平地摔】不小心碰掉了你 2 🧶' } },
-        { id: 11, name: '无毛外星人', rarity: 'N', color: '#FBCFE8', belly: '#FDF2F8', eyes: 'cool', mouth: 'smile', tail: 'normal', desc: '没有毛，摸起来像热乎乎的桃子。', ability: { type: 'color_wipe', value: 1, desc: '【外星科技】有极小概率抹除一种颜色（若盘面颜色少）' } },
+        { id: 11, name: '无毛外星人', rarity: 'N', color: '#FBCFE8', belly: '#FDF2F8', eyes: 'cool', mouth: 'smile', tail: 'normal', desc: '没有毛，摸起来像热乎乎的桃子。', ability: { type: 'color_wipe', value: 1, desc: '【外星科技】有极小概率抹除一种颜色' } },
         { id: 12, name: '暹罗挖煤工', rarity: 'N', color: '#E5E7EB', belly: '#E5E7EB', spots: ['#374151', '#374151'], eyes: 'normal', mouth: 'blep', tail: 'normal', desc: '脸黑得像刚从煤矿里出来一样。', ability: { type: 'bonus_yarn_win', value: 5, desc: '【挖矿辛劳】通关额外挖到 5 🧶' } },
         { id: 13, name: '蓝胖子', rarity: 'N', color: '#94A3B8', belly: '#CBD5E1', eyes: 'happy', mouth: 'smile', tail: 'fluffy', desc: '非常敦实，抱起来手感极佳。', ability: { type: 'prevent_loss_penalty', value: true, desc: '【肉盾抗伤】失败免除扣费惩罚' } },
         { id: 14, name: '偷吃炸毛喵', rarity: 'N', color: '#78350F', belly: '#92400E', eyes: 'googly', mouth: 'fangs', tail: 'fluffy', desc: '偷吃小鱼干被抓包时的应激状态。', ability: { type: 'steal_yarn', value: 3, desc: '【偷吃惯犯】开局偷吃了你 3 🧶' } },
@@ -179,21 +180,7 @@
         { id: 100, name: '概念纠缠·矩阵之眼', rarity: 'UR', color: '#064E3B', belly: '#047857', eyes: 'monocle', headgear: 'cyber-visor', aura: 'matrix-rain', desc: '看透了世界是一段代码，于是它黑进了自动喂食器。', ability: { type: 'unify_color', value: 60, desc: '【修改底层代码】霸权！开局瞬间强行同化 60 个方块！' } },
         ];
 
-        const RARITY_COLORS = {
-            'N': 'text-slate-500 bg-slate-100 border-slate-300',
-            'R': 'text-blue-500 bg-blue-50 border-blue-300',
-            'SR': 'text-purple-600 bg-purple-50 border-purple-300',
-            'SSR': 'text-amber-500 bg-amber-50 border-amber-400',
-            'UR': 'text-rose-500 bg-rose-50 border-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.6)]',
-        };
-
-        const REFUND_RATES = { 'N': 10, 'R': 15, 'SR': 25, 'SSR': 35, 'UR': 50 };
-        
-        // 核心改动：精简至 4 种颜色 (红、蓝、黄、绿)
-        const GRID_COLORS = ['#EF4444', '#3B82F6', '#F59E0B', '#10B981'];
-        const EMPTY_CELL = -1;
-
-        // --- 核心模块化 SVG 渲染引擎 ---
+        // --- 复杂的猫咪渲染组件 (原封不动保留) ---
         const ComplexCatSvg = ({ cat, className }) => {
             const bc = cat.color;
             const belly = cat.belly;
@@ -216,7 +203,6 @@
                     </pattern>
                     </defs>
 
-                    {/* --- 特效光环 Aura (Back) --- */}
                     {cat.aura === 'neon-glow' && <circle cx="100" cy="120" r="80" fill={`url(#glow-${cat.id})`} opacity="0.4" />}
                     {cat.aura === 'spirit-fire' && (
                     <g fill="#38BDF8" opacity="0.7" className="animate-float">
@@ -262,8 +248,6 @@
                         <circle cx="0" cy="0" r="60" fill="none" stroke="#A855F7" strokeWidth="3" opacity="0.8" />
                     </g>
                     )}
-                    
-                    {/* UR 专属超级动效 */}
                     {cat.aura === 'dark-vortex' && (
                     <g transform="translate(100, 100)" className="animate-spin-slow">
                         <path d="M 0 0 C 60 0, 100 60, 0 100 C -100 60, -60 0, 0 0" fill="none" stroke="#4C1D95" strokeWidth="12" filter="blur(6px)" opacity="0.8" />
@@ -809,13 +793,22 @@
             );
         };
 
-        function CatGachaGame() {
+        function App() {
             // UI State
-            const [currentView, setCurrentView] = useState('game'); // 'game' or 'collection'
+            const [currentView, setCurrentView] = useState('game'); 
+            const [showSaveModal, setShowSaveModal] = useState(false);
+            const [importCode, setImportCode] = useState('');
+            const [copySuccess, setCopySuccess] = useState(false);
             
-            // Game State
-            const [yarn, setYarn] = useState(40); 
-            const [collection, setCollection] = useState([]); 
+            // Game State - 自动从 LocalStorage 初始化
+            const [yarn, setYarn] = useState(() => {
+                const saved = localStorage.getItem('meow_yarn');
+                return saved !== null ? parseInt(saved, 10) : 40;
+            }); 
+            const [collection, setCollection] = useState(() => {
+                const saved = localStorage.getItem('meow_collection');
+                return saved !== null ? JSON.parse(saved) : [];
+            }); 
             
             const BOARD_SIZE = 12;
             const BASE_MAX_MOVES = 20; 
@@ -825,7 +818,7 @@
             const [gameState, setGameState] = useState({ status: 'playing', reward: 0, bonus: 0, penalty: 0 }); 
             const [startPos, setStartPos] = useState([0,0]); 
             
-            // Companion / Ability State
+            // Companion State
             const lastCompanionIdRef = useRef(null);
             const [companion, setCompanion] = useState(null);
             const [triggerAnim, setTriggerAnim] = useState(0);
@@ -835,6 +828,51 @@
             const [summonState, setSummonState] = useState('idle'); 
             const [summonResult, setSummonResult] = useState(null); 
             const SUMMON_COST = 50;
+
+            // --- 自动保存到 LocalStorage ---
+            useEffect(() => {
+                localStorage.setItem('meow_yarn', yarn.toString());
+                localStorage.setItem('meow_collection', JSON.stringify(collection));
+            }, [yarn, collection]);
+
+            // --- 存档代码导入/导出逻辑 ---
+            const generateSaveCode = () => {
+                const saveData = { y: yarn, c: collection };
+                return btoa(JSON.stringify(saveData)); // 简单 Base64 编码
+            };
+
+            const handleCopyCode = () => {
+                const code = generateSaveCode();
+                // 兼容浏览器的复制方法
+                const el = document.createElement('textarea');
+                el.value = code;
+                document.body.appendChild(el);
+                el.select();
+                document.execCommand('copy');
+                document.body.removeChild(el);
+                
+                setCopySuccess(true);
+                setTimeout(() => setCopySuccess(false), 2000);
+            };
+
+            const handleImportCode = () => {
+                if (!importCode.trim()) return;
+                try {
+                    const decoded = atob(importCode.trim());
+                    const parsed = JSON.parse(decoded);
+                    if (typeof parsed.y === 'number' && Array.isArray(parsed.c)) {
+                        setYarn(parsed.y);
+                        setCollection(parsed.c);
+                        setImportCode('');
+                        setShowSaveModal(false);
+                        alert("存档导入成功！");
+                    } else {
+                        alert("存档代码无效！");
+                    }
+                } catch(e) {
+                    alert("存档代码无效或已损坏！");
+                }
+            };
 
             const generateIrregularBoard = useCallback(() => {
                 let newBoard = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(EMPTY_CELL));
@@ -903,7 +941,7 @@
                         calculatedMaxMoves += ab.value;
                     } else if (ab.type === 'free_moves') {
                         initFreeMoves = Math.max(0, ab.value);
-                        if (ab.value < 0) calculatedMaxMoves += ab.value; // negative free moves = less max moves
+                        if (ab.value < 0) calculatedMaxMoves += ab.value; 
                     } else if (ab.type === 'scramble_board') {
                         let filled = [];
                         for(let r=0; r<BOARD_SIZE; r++) {
@@ -971,7 +1009,6 @@
                 setBoard(newBoard);
                 setMoves(0);
                 
-                // Check if auto-win triggered instantly
                 let isWin = true;
                 let startC = newBoard[sR][sC];
                 for (let r = 0; r < BOARD_SIZE; r++) {
@@ -1123,7 +1160,7 @@
                 <div className="min-h-screen flex flex-col relative overflow-hidden bg-slate-900 pb-10">
                     {/* 顶部导航与状态栏 */}
                     <div className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-xl border-b border-slate-800 shadow-md">
-                        <div className="px-4 py-3 flex justify-between items-center">
+                        <div className="px-4 py-3 flex justify-between items-center max-w-4xl mx-auto">
                             <div className="flex items-center gap-2">
                                 <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/50">
                                     <PackageIcon className="text-white w-6 h-6" />
@@ -1135,22 +1172,31 @@
                             <div className="flex bg-slate-800 p-1 rounded-xl shadow-inner border border-slate-700">
                                 <button 
                                     onClick={() => setCurrentView('game')}
-                                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${currentView === 'game' ? 'bg-indigo-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+                                    className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-sm font-bold flex items-center gap-1 sm:gap-2 transition-all ${currentView === 'game' ? 'bg-indigo-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
                                 >
                                     <GamepadIcon className="w-4 h-4" /> 解谜
                                 </button>
                                 <button 
                                     onClick={() => setCurrentView('collection')}
-                                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${currentView === 'collection' ? 'bg-indigo-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+                                    className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-sm font-bold flex items-center gap-1 sm:gap-2 transition-all ${currentView === 'collection' ? 'bg-indigo-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
                                 >
                                     <GiftIcon className="w-4 h-4" /> 收藏
                                 </button>
                             </div>
 
-                            <div className="flex items-center bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 shadow-inner">
-                                <span className="text-xl font-black text-indigo-400 flex items-center gap-1 transition-all">
-                                    {yarn} <span className="text-xl drop-shadow-md">🧶</span>
-                                </span>
+                            <div className="flex gap-2 items-center">
+                                <button 
+                                    onClick={() => setShowSaveModal(true)}
+                                    className="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-600 transition-colors text-slate-300"
+                                    title="保存/读取进度"
+                                >
+                                    <SaveIcon className="w-5 h-5" />
+                                </button>
+                                <div className="flex items-center bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 shadow-inner">
+                                    <span className="text-lg sm:text-xl font-black text-indigo-400 flex items-center gap-1 transition-all">
+                                        {yarn} <span className="text-lg sm:text-xl drop-shadow-md">🧶</span>
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1186,7 +1232,7 @@
                                         <p className="text-xs text-slate-400 mt-1">从 <span className="text-pink-500 font-bold">闪烁起点</span> 统领全色</p>
                                     </div>
                                     <div className="text-right">
-                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Moves Left</span>
+                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">剩余步数 / 限制</span>
                                         <div className={`text-4xl font-black leading-none ${maxMoves - moves <= 3 ? 'text-red-500 animate-pulse drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'text-white'}`}>
                                             {maxMoves - moves} <span className="text-lg text-slate-600 font-bold">/ {maxMoves}</span>
                                         </div>
@@ -1363,6 +1409,45 @@
                         )}
                     </div>
 
+                    {/* ================= 存档/读档 弹窗 ================= */}
+                    {showSaveModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setShowSaveModal(false)}>
+                            <div className="bg-slate-800 rounded-3xl p-6 max-w-sm w-full border border-slate-600 shadow-2xl relative" onClick={e => e.stopPropagation()}>
+                                <h3 className="text-xl font-black text-white mb-4 flex items-center gap-2">
+                                    <SaveIcon className="w-5 h-5 text-indigo-400" /> 进度存取 (代码)
+                                </h3>
+                                
+                                <div className="mb-6">
+                                    <p className="text-sm text-slate-400 mb-2">生成你的专属存档代码，可以复制保存到备忘录，下次在此粘贴即可恢复进度。</p>
+                                    <div className="flex gap-2">
+                                        <input type="text" readOnly value={generateSaveCode()} className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-300 text-sm font-mono outline-none" />
+                                        <button onClick={handleCopyCode} className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors flex items-center gap-1">
+                                            {copySuccess ? <CheckIcon className="w-4 h-4"/> : '复制'}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="border-t border-slate-700 pt-6">
+                                    <p className="text-sm font-bold text-indigo-400 mb-2">导入存档代码：</p>
+                                    <textarea 
+                                        value={importCode}
+                                        onChange={(e) => setImportCode(e.target.value)}
+                                        placeholder="在此粘贴你的代码..."
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-300 text-sm font-mono outline-none mb-3 h-20 resize-none"
+                                    ></textarea>
+                                    <div className="flex gap-3">
+                                        <button onClick={handleImportCode} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-bold transition-colors">
+                                            确认导入
+                                        </button>
+                                        <button onClick={() => setShowSaveModal(false)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2.5 rounded-xl font-bold transition-colors">
+                                            关闭
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* ================= 全局弹窗：抽卡/详情 ================= */}
                     {(summonState !== 'idle' || (summonResult && summonResult.forceShow)) && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl" onClick={() => (summonState === 'revealed' || (summonResult && summonResult.forceShow)) ? closeResult() : null}>
@@ -1436,7 +1521,7 @@
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<CatGachaGame />);
+        root.render(<App />);
     </script>
 </body>
 </html>
