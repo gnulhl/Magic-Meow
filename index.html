@@ -56,6 +56,13 @@
         const GRID_COLORS = ['#EF4444', '#3B82F6', '#F59E0B', '#10B981']; // 红蓝黄绿
         const EMPTY_CELL = -1;
         const REFUND_RATES = { 'N': 10, 'R': 15, 'SR': 25, 'SSR': 35, 'UR': 50 };
+        const RARITY_COLORS = {
+            'N': 'text-slate-500 bg-slate-100 border-slate-300',
+            'R': 'text-blue-500 bg-blue-50 border-blue-300',
+            'SR': 'text-purple-600 bg-purple-50 border-purple-300',
+            'SSR': 'text-amber-500 bg-amber-50 border-amber-400',
+            'UR': 'text-rose-500 bg-rose-50 border-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.6)]',
+        };
 
         // --- SVG 图标组件 ---
         const PackageIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>;
@@ -203,6 +210,7 @@
                     </pattern>
                     </defs>
 
+                    {/* --- 特效光环 Aura (Back) --- */}
                     {cat.aura === 'neon-glow' && <circle cx="100" cy="120" r="80" fill={`url(#glow-${cat.id})`} opacity="0.4" />}
                     {cat.aura === 'spirit-fire' && (
                     <g fill="#38BDF8" opacity="0.7" className="animate-float">
@@ -248,6 +256,8 @@
                         <circle cx="0" cy="0" r="60" fill="none" stroke="#A855F7" strokeWidth="3" opacity="0.8" />
                     </g>
                     )}
+                    
+                    {/* UR 专属超级动效 */}
                     {cat.aura === 'dark-vortex' && (
                     <g transform="translate(100, 100)" className="animate-spin-slow">
                         <path d="M 0 0 C 60 0, 100 60, 0 100 C -100 60, -60 0, 0 0" fill="none" stroke="#4C1D95" strokeWidth="12" filter="blur(6px)" opacity="0.8" />
@@ -1474,8 +1484,8 @@
                                             {summonResult.previewOnly ? `NO.${summonResult.cat.id} 绝密档案` : (summonResult.isNew ? '✨ 奇迹降临！新图鉴解锁 ✨' : '获得了熟悉的旧面孔')}
                                         </h3>
                                         
-                                        <div className="my-8 flex justify-center">
-                                            <div className="w-56 h-56 sm:w-72 sm:h-72 relative group">
+                                        <div className="my-10 flex justify-center">
+                                            <div className="w-64 h-64 relative group">
                                                 {(summonResult.cat.rarity === 'SSR' || summonResult.cat.rarity === 'UR') && (
                                                     <div className="absolute inset-0 bg-yellow-400/10 rounded-full blur-3xl animate-pulse"></div>
                                                 )}
